@@ -1,80 +1,70 @@
 # Definition of Ready (DoR)
 
-> A User Story is **Ready** when the entire team can start it in the next sprint
-> without needing to resolve fundamental questions mid-sprint.
-> If a story doesn't meet this DoR, it goes back to refinement.
+> A User Story is **Ready** when the entire team can begin developing it in the upcoming sprint without needing to resolve fundamental questions midway through the cycle. If a story does not meet this DoR, it must return to the refinement phase.
 
 ---
 
-## DoR checklist
+## DoR Checklist
 
-Before moving a User Story to "Ready for Sprint", verify:
+Before moving a User Story to the **"Ready for Sprint"** status, verify the following aspects:
 
-### Clarity
-
-- [ ] The story is written in the format: **As [role], I want [action], so that [benefit]**
-- [ ] The role is specific (not "as a user" — "as an authenticated buyer")
-- [ ] The expected benefit is clear and verifiable
+### Clarity and Wording
+* [ ] The story follows the standard format: **As a [role], I want to [action], so that [benefit]**.
+* [ ] The specified role is clear and concrete (e.g., *Travel Agency*, *Registered Tourist*, *Administrator*, rather than a generic "User").
+* [ ] The expected benefit is evident, measurable, and adds real value to the product.
 
 ### Acceptance Criteria
-
-- [ ] There are at least 2 acceptance criteria written in **Given / When / Then** format
-- [ ] The criteria cover the happy path AND the main error cases
-- [ ] The criteria are testable (it is possible to write an automated test for each one)
-- [ ] There are no ambiguous criteria ("the response should be fast" is not valid)
+* [ ] It contains verifiable acceptance criteria, preferably expressed in the **Given / When / Then** format.
+* [ ] The criteria cover both the main flow (*happy path*) and key error cases or exceptions.
+* [ ] The criteria are testable via automated tests or objective manual tests.
+* [ ] Ambiguities are avoided (e.g., instead of "the response must be fast," it specifies "response time must be less than 3 seconds").
 
 ### Dependencies
-
-- [ ] All external dependencies (other services, APIs, data) are identified
-- [ ] Blocking dependencies are resolved OR a workaround is defined
-- [ ] If it depends on another story, that story is already Done or In Progress
+* [ ] All external dependencies (third-party services, APIs, infrastructure) have been identified.
+* [ ] Blocking dependencies are resolved, or a viable contingency plan has been defined.
+* [ ] If it depends on another User Story, that preceding story is already in the **Done** state or is well underway.
 
 ### Estimation
+* [ ] The development team has estimated the story using Story Points (SP).
+* [ ] There is a consensus that the story can comfortably be completed within a single sprint.
+* [ ] If the estimate exceeds a reasonable limit (> 8 SP), the story has been split into smaller stories. ### Technical Preparation
+* [ ] Necessary access, credentials, and environments are available to begin development.
+* [ ] If new endpoints are involved, API specifications or contracts (OpenAPI/Swagger) are defined.
+* [ ] Database or data model changes are documented.
+* [ ] Impact on other existing components or modules has been identified and assessed.
 
-- [ ] The team has estimated the story (story points or t-shirt size)
-- [ ] There is agreement that the story fits in one sprint
-- [ ] If it's too large, it has been broken down into smaller stories
-
-### Technical readiness
-
-- [ ] The necessary accesses and environments are available
-- [ ] The API contracts (OpenAPI) are defined if the story involves new endpoints
-- [ ] There is a definition of the data model if there are DB changes
-- [ ] The impact on other services is identified
-
-### Non-functional requirements
-
-- [ ] Performance requirements are specified (if applicable)
-- [ ] Security requirements are considered (authentication, authorization, validations)
-- [ ] Observability requirements are included (logs, metrics, traces)
+### Non-Functional Requirements (NFRs)
+* [ ] Applicable performance parameters (e.g., response times, load) are defined.
+* [ ] Security criteria (authentication, authorization, input validation and sanitization) are addressed.
+* [ ] Traceability and observability requirements (logs, key metrics) are included.
 
 ---
 
-## Common reasons a story is NOT ready
+## Common Reasons Why a Story is NOT "Ready"
 
-| Problem | What to do |
-|---------|-----------|
-| Unclear requirements | Schedule a 30-min refinement session with the PO |
-| Missing acceptance criteria | PO adds criteria before the next sprint |
-| Unknown dependencies | Tech Lead reviews and documents dependencies |
-| Too large (> 8 SP) | Break it down into smaller stories |
-| No access to test environment | DevOps generates credentials before sprint |
-| Unclear API contract | Agree on contract (OpenAPI) before starting |
-
----
-
-## DoR vs DoD
-
-| | Definition of Ready (DoR) | Definition of Done (DoD) |
-|-|--------------------------|--------------------------|
-| **When** | Before starting the story | After finishing the story |
-| **Who verifies** | Team in planning/refinement | Team in review |
-| **Purpose** | Ensure the team can start without blockers | Ensure the increment is shippable |
+| Identified Issue | Recommended Corrective Action |
+| :--- | :--- |
+| **Ambiguous or incomplete requirements** | Schedule a short refinement session (30 min) with the Product Owner/Analyst. |
+| **Missing acceptance criteria** | The Product Owner must detail the criteria before the Planning session. |
+| **Unidentified dependencies** | The Tech Lead evaluates the architecture and documents necessary dependencies. |
+| **Story is too large (> 8 SP)** | Apply *Story Splitting* techniques to break it down into smaller deliverables. |
+| **No access to environments or APIs** | Request or configure credentials prior to sprint execution. |
+| **Undefined API contract** | Agree on the request/response structure (JSON) between frontend and backend before starting. |
 
 ---
 
-## Correlations
+## Comparison: DoR vs. DoD
 
-- Full DoD → `00-governance/definition-of-done.md`
-- User Story template → `04-requirements/_template-hu.md`
-- User Stories backlog → `04-requirements/user-stories.md`
+| Criterion | Definition of Ready (DoR) | Definition of Done (DoD) |
+| :--- | :--- | :--- |
+| **When it applies** | **Before** starting the story (Planning / Refinement). | **Upon completion** of the story's implementation. | |
+| **Verified by** | The development team together with the Product Owner. | The technical team during the increment review. |
+| **Primary purpose** | To ensure the team starts without blockers or ambiguities. | To ensure the deliverable is functional, secure, and deployable. |
+
+---
+
+## Related Documentation
+
+* **Definition of Done (DoD):** `00-governance/definition-of-done.md`
+* **User Story Template:** `04-requirements/_template-hu.md`
+* **User Story Backlog:** `04-requirements/user-stories.md`
