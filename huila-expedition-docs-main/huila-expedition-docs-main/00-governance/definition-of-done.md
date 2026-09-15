@@ -1,50 +1,52 @@
-# Definition of Done (DoD)
+# Definition of Done (DoD) — Huila Travel Expedition (HTE)
 
-> A User Story is **DONE** when it meets ALL criteria on this checklist.
-> If even one is missing, the story is NOT done — it goes back to In Progress.
+> Una Historia de Usuario o Tarea Técnica está **DONE** cuando cumple con TODOS los criterios de esta lista de verificación. Si falta un solo criterio, la historia NO se considera finalizada y regresa al estado In Progress.
 
-## Mandatory checklist
+---
 
-### Code
-- [ ] Code implements all acceptance criteria of the user story
-- [ ] Code was reviewed and approved by at least 1 team member (PR review)
-- [ ] Code follows project standards (linting and formatting pass in CI)
-- [ ] No technical debt introduced without registering it in `15-project-control/technical-backlog.md`
+## Mandatory Checklist
 
-### Tests
-- [ ] Unit tests written for new business logic
-- [ ] Test coverage does not decrease from the project baseline
-- [ ] All tests pass locally and in CI
-- [ ] Acceptance criteria verified (manual or automated)
+### Code & Quality
+* [ ] El código implementa todos los criterios de aceptación especificados en la historia de usuario.
+* [ ] El código fue revisado y aprobado por al menos 1 integrante del equipo mediante Pull Request en GitHub.
+* [ ] El código sigue los estándares del proyecto (supera las validaciones de Linter y Formateo en CI/CD).
+* [ ] No se introduce deuda técnica sin registrarla explícitamente en `15-project-control/tech-backlog.md`.
 
-### Integration
-- [ ] Changes do not break other services (integration tests pass)
-- [ ] If API changes: OpenAPI contract updated in `07-api/contracts/`
-- [ ] If data model changes: service `data-model.md` updated
-- [ ] If new/modified events: `event-catalog.md` updated
+### Testing
+* [ ] Se escribieron pruebas unitarias para la lógica de negocio nueva o modificada.
+* [ ] La cobertura de pruebas (coverage) se mantiene o supera la línea base del proyecto (mínimo 70%).
+* [ ] Todas las pruebas pasan exitosamente de manera local y en el pipeline de Integración Continua (CI).
+* [ ] Criterios de aceptación verificados manualmente o mediante pruebas automatizadas.
 
-### Deployment
-- [ ] Code is mergeable to `dev` (no conflicts)
-- [ ] CI/CD green on the branch
-- [ ] Deployed to staging environment
-- [ ] Basic smoke test passing on staging
+### Architecture & Contracts
+* [ ] Los cambios no rompen la integración con otros servicios del ecosistema HTE.
+* [ ] Si la API cambia: contrato OpenAPI actualizado en `07-api/contracts/`.
+* [ ] Si el modelo de datos cambia: modelo del servicio actualizado en su respectivo `data-model.md`.
+* [ ] Si se agregan o modifican eventos de dominio: archivo `02-domain/domain-events.md` actualizado.
+
+### Deployment & CI/CD
+* [ ] La rama se integra sin conflictos a la rama principal (`main` o `dev`).
+* [ ] El pipeline de CI/CD completa con éxito la compilación y ejecución de tests automatizados.
+* [ ] Despliegue exitoso en el entorno de pruebas o staging.
+* [ ] Pruebas básicas de humo (smoke tests) aprobadas en el entorno desplegado.
 
 ### Documentation
-- [ ] Service `README.md` updated if the public interface changed
-- [ ] If a significant technical decision was made: ADR created or updated
+* [ ] Archivo `README.md` del servicio actualizado si cambió la interfaz pública o la configuración.
+* [ ] Registro de decisiones arquitectónicas (ADR) creado o actualizado si se tomó una decisión técnica significativa.
 
 ---
 
-## Allowed exceptions
+## Allowed Exceptions
 
-The following exceptions must be explicitly agreed to by the Tech Lead:
-- E2E tests omitted due to environment limitations (document the risk)
-- Documentation deferred for urgent delivery (create a tech-debt ticket)
+Las siguientes excepciones son válidas únicamente con la aprobación explícita del Tech Lead o del equipo completo:
+
+* Omisión de pruebas End-to-End (E2E) por limitaciones técnicas o de entorno (requiere registrar el riesgo en `15-project-control/risks.md`).
+* Documentación técnica no crítica postergada por entrega urgente (requiere crear una tarea en `15-project-control/tech-backlog.md`).
 
 ---
 
-## What is NOT a Done criterion
+## What is NOT a Done Criterion
 
-- "The code is on my machine" — it must be in the repository
-- "It works on my local environment" — it must work on staging
-- "The PM/PO approved it" — that is the product Definition of Done, not the code's
+* "El código funciona en mi máquina" — Debe estar integrado en el repositorio remoto.
+* "Funciona en local" — Debe funcionar e integrarse correctamente en el entorno de desarrollo/staging.
+* "El Product Owner/Instructor lo aprobó verbalmente" — Debe cumplir con los criterios técnicos comprobables del repositorio.
