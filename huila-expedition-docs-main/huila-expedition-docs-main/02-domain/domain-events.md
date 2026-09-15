@@ -1,258 +1,185 @@
-# Domain Events
+Domain Events — Huila Travel Expedition (HTE)
+A domain event is an immutable fact that has occurred within the business. They serve as the cornerstone of asynchronous communication between bounded contexts within the HTE platform. Their names are always written in the past tense, using the ubiquitous language of the Huila tourism domain.
 
-> **What to fill in here:** A domain event is a fact that occurred in the business.
-> They are the backbone of asynchronous communication between bounded contexts.
-> The name is ALWAYS in past tense and in the ubiquitous language of the domain.
+What is a domain event?
+A domain event communicates that something significant has happened in the business. It is an immutable message describing a completed action or fact.
 
----
+Correct examples (Events):
 
-## What is a domain event?
+AgencyRegistered
 
-A **Domain Event** communicates that something important occurred in the business.
-It is an immutable message that describes the fact in past tense.
+TourPlanPublished
 
-```
-✓ OrderCreated
-✓ PaymentRejected
-✓ UserRegistered
-✓ StockDepleted
+BookingRequested
 
-✗ CreateOrder (this is a command, not an event)
-✗ OrderUpdated (too generic — what changed?)
-✗ OrderEvent (does not indicate what occurred)
-```
+BookingApproved
 
-### Difference between Command and Event
+ReviewSubmitted
 
-| Concept | Intent | Tense | Can fail? |
-|---------|--------|-------|-----------|
-| **Command** | Instruction to do something | Present | Yes |
-| **Event** | Notification of something that occurred | Past | No (it already happened) |
+Incorrect examples:
 
-```
-User → [CreateOrder] → System → [OrderCreated] → Other contexts
-          (Command)                  (Event)
-```
+RegisterAgency (This is a command, not an event)
 
----
+UpdatePlan (Too generic — what changed?)
 
-## Event catalog
+BookingEvent (Does not indicate what happened in the business)
 
-### Event: [EventName]
+Difference between Command and Event
+Command:
 
-| Field | Value |
-|-------|-------|
-| **Name** | `[EventName]` |
-| **Bounded Context** | [Origin context] |
-| **Aggregate** | [Aggregate that generates it] |
-| **Trigger** | [Which business action generates this event] |
-| **Consumers** | [Which services/contexts listen to this event] |
-| **Channel (topic)** | `[topic.name]` |
-| **Schema version** | `v1` |
-| **Delivery guarantee** | At-least-once / At-most-once / Exactly-once |
+Intent: Instruction to perform a business action.
 
-**Payload (JSON schema):**
+Tense: Present.
 
-```json
-{
-  "eventId": "550e8400-e29b-41d4-a716-446655440000",
-  "eventType": "[EventName]",
-  "aggregateId": "550e8400-e29b-41d4-a716-446655440001",
-  "aggregateType": "[AggregateName]",
-  "occurredAt": "2024-01-15T10:30:00Z",
-  "version": 1,
-  "payload": {
-    "[field1]": "[type and description]",
-    "[field2]": "[type and description]"
-  },
-  "metadata": {
-    "correlationId": "550e8400-e29b-41d4-a716-446655440002",
-    "causationId": "550e8400-e29b-41d4-a716-446655440003",
-    "userId": "550e8400-e29b-41d4-a716-446655440004"
-  }
-}
-```
+Can it fail?: Yes (it can be rejected due to business rules or validations).
 
-**Real payload example:**
+Event:
 
-```json
-{
-  "eventId": "generated-uuid",
-  "eventType": "[EventName]",
-  "aggregateId": "aggregate-uuid",
-  "aggregateType": "[AggregateName]",
-  "occurredAt": "2024-01-15T10:30:00Z",
-  "version": 1,
-  "payload": {
-    "[field1]": "example value",
-    "[field2]": 150.00
-  }
-}
-```
+Intent: Notification of a fact that has already occurred.
 
-**What do consumers do with this event?**
+Tense: Past.
 
-| Consuming service | Action | Idempotent? |
-|------------------|--------|-------------|
-| [Service A] | [Updates its data model] | Yes — uses eventId as idempotency key |
-| [Service B] | [Sends notification] | Yes — checks if notification was already sent |
+Can it fail?: No (the event has already taken place in the system).
 
----
-
-## Standard fields for all events
-
-All events must include these fields in the envelope:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `eventId` | UUID | Unique event ID (for idempotency) |
-| `eventType` | string | Event name in PascalCase |
-| `aggregateId` | UUID | ID of the aggregate that generated the event |
-| `aggregateType` | string | Aggregate type |
-| `occurredAt` | ISO 8601 | When the business fact occurred |
-| `version` | integer | Schema version (for evolution) |
-| `payload` | object | Event data (specific per type) |
-| `metadata.correlationId` | UUID | For tracing a transaction across services |
-| `metadata.causationId` | UUID | ID of the event or command that caused this event |
-| `metadata.userId` | UUID | User who initiated the chain (if applicable) |
-
----
-
-## Event flow: [Flow name]
-
-> Document here the event flows for the main business processes.
-> Use the Event Storming format: orange=event, blue=command, green=view/policy, yellow=aggregate.
-
-```
-[Actor]
+Turista
   │
-  │  [CommandA]           [CommandB]           [CommandC]
-  ▼      │                    │                    │
-[AggregateA]          [AggregateB]          [AggregateC]
-  │                        ▲                    ▲
-  │   [EventA]             │   [EventB]         │
-  └──────────────────────▶│──────────────────▶│
-```
-
-### Example: Order creation flow
-
-```
-Customer
-  │
-  │  CreateOrder (command)
+  │  RequestBooking (comando)
   ▼
-[Aggregate: Order]
+[Agregado: Booking]
   │
-  │  OrderCreated (event)
-  ├──────────────────────────────────┐
-  │                                   ▼
-  │                          [Service: Inventory]
-  │                          Decrements stock
-  │                          StockReserved (event)
+  │  BookingRequested (evento)
+  ├───────────────────────────────────────────┐
+  │                                           ▼
+  │                                [Servicio: Notificaciones]
+  │                                Envía correo inicial al turista y agencia
   │
-  │  OrderCreated (event)
-  └──────────────────────────────────┐
-                                      ▼
-                            [Service: Notifications]
-                            Sends email to customer
-```
+  │  BookingRequested (evento)
+  └───────────────────────────────────────────┐
+                                              ▼
+                                   [Servicio: Disponibilidad]
+                                   Actualiza cupo del calendario de la agencia
 
----
+Agencia
+  │
+  │  ApproveBooking (comando)
+  ▼
+[Agregado: Booking]
+  │
+  │  BookingApproved (evento)
+  └───────────────────────────────────────────┐
+                                              ▼
+                                   [Servicio: Notificaciones]
+                                   Envía correo de confirmación final con itinerario
+Event Catalog
+Event: Booking Requested
+Event Properties:
 
-## Schema evolution strategy
+Name: BookingRequested
 
-Events are contracts. Changing them in an incompatible way breaks consumers.
+Bounded Context: Booking Context
 
-### What is a compatible change (does not break)?
+Aggregate: Booking
 
-```
-✓ Add a new optional field to the payload
-✓ Add a new event type
-✓ Change a required field → optional
-```
+Trigger: The tourist completes and submits the booking request for a tour plan. Consumers: Notifications Service, Inventory/Availability Service
 
-### What is an incompatible change (breaks)?
+Channel (Topic): hte.bookings.booking-requested
 
-```
-✗ Remove a field from the payload
-✗ Change the type of a field (string → number)
-✗ Change an optional field → required
-✗ Change the event name
-```
+Schema version: v1
 
-### How to evolve a schema without breaking consumers
+Delivery guarantee: At-least-once
 
-**Strategy: Version the event**
+Payload (JSON Schema):
 
-```
-Step 1: Publish EventV2 (new type with incompatible changes)
-Step 2: Publish both EventV1 and EventV2 during the migration period
-Step 3: Migrate consumers to V2 one by one
-Step 4: Deprecate EventV1 (announce 1 sprint in advance)
-Step 5: Stop publishing EventV1
-```
-
----
-
-## Event summary table
-
-| Event | Origin context | Topic | Consumers | Version |
-|-------|---------------|-------|-----------|---------|
-| [EventA] | [ContextA] | `[topic.a]` | [SvcB, SvcC] | v1 |
-| [EventB] | [ContextB] | `[topic.b]` | [SvcA] | v1 |
-
----
-
-## Policies — Reactions to events
-
-A **Policy** (or Saga step) describes what happens automatically when an event arrives.
-It is the logic of "whenever X occurs, do Y".
-
-```
-Event:  OrderCreated
-Policy: Whenever an OrderCreated arrives with type=URGENT,
-        emit the command NotifyOperationsTeam
-```
-
-| Trigger event | Policy | Emitted command | Service |
-|--------------|--------|----------------|---------|
-| [EventA] | Whenever [condition], then... | [CommandB] | [ServiceX] |
-
----
-
-## Resilience patterns for events
-
-### At-least-once delivery + Idempotency
-
-The message broker guarantees the event is delivered **at least once** but it may be
-delivered more than once (in case of retries). Consumers must be **idempotent**.
-
-```typescript
-// Idempotent consumer — stores the processed eventId
-async function processOrderCreatedEvent(event: OrderCreated): Promise<void> {
-  // 1. Check if already processed
-  if (await isEventAlreadyProcessed(event.eventId)) {
-    logger.info(`Event ${event.eventId} already processed, ignoring`);
-    return;
-  }
-
-  // 2. Process the event
-  await updateModel(event.payload);
-
-  // 3. Mark as processed (in the same transaction)
-  await markEventProcessed(event.eventId);
+JSON
+{
+"eventId": "550e8400-e29b-41d4-a716-446655440000",
+"eventType": "BookingRequested",
+"aggregateId": "b10a8400-e29b-41d4-a716-446655440010",
+"aggregateType": "Booking",
+"occurredAt": "2026-09-15T10:30:00Z",
+"version": 1,
+"payload": {
+"bookingId": "b10a8400-e29b-41d4-a716-446655440010",
+"tourPlanId": "p20a8400-e29b-41d4-a716-446655440020",
+"agencyId": "a30a8400-e29b-41d4-a716-446655440030",
+"touristName": "Carlos Mendoza",
+"touristEmail": "carlos.mendoza@example.com",
+"touristPhone": "+573101234567",
+"bookingDate": "2026-10-12",
+"numberOfPeople": 3,
+"totalPrice": 450000.00,
+"termsAccepted": true
+},
+"metadata": {
+"correlationId": "c40a8400-e29b-41d4-a716-446655440040",
+"causationId": "cmd-req-booking-9988",
+"userId": "u50a8400-e29b-41d4-a716-446655440050"
 }
-```
+}
+Consumer actions in response to this event:
 
-### Dead Letter Queue (DLQ)
+Notification Service: Sends a request confirmation email to the tourist and alerts the agency. (It is idempotent: checks the eventId against its history of processed events).
 
-When an event fails after N retries, it goes to the DLQ.
+Availability Service: Temporarily blocks the slot on the calendar. (It is idempotent: uses bookingId as the idempotency key).
 
-| Configuration | Recommended value |
-|--------------|------------------|
-| Retries before DLQ | 3-5 |
-| Backoff | Exponential (1s → 2s → 4s → 8s) |
-| DLQ retention | 7 days |
-| Alert | When DLQ has > 0 messages |
+Event: Booking approved
+Event Properties:
 
-> See DLQ runbook in `09-microservices/services/XX-service/runbook.md`
+Name: BookingApproved
+
+Bounded Context: Booking context
+
+Aggregate: Booking
+
+Trigger: The agency manually approves the booking via its administrative dashboard. Consumers: Notifications Service, Tourist History Service
+
+Channel (Topic): hte.bookings.booking-approved
+
+Schema version: v1
+
+Delivery guarantee: At-least-once
+
+Payload (JSON Schema):
+
+JSON
+{
+"eventId": "660e8400-e29b-41d4-a716-446655440001",
+"eventType": "BookingApproved",
+"aggregateId": "b10a8400-e29b-41d4-a716-446655440010",
+"aggregateType": "Booking",
+"occurredAt": "2026-09-15T11:15:00Z",
+"version": 1,
+"payload": {
+"bookingId": "b10a8400-e29b-41d4-a716-446655440010",
+"agencyId": "a30a8400-e29b-41d4-a716-446655440030",
+"touristEmail": "carlos.mendoza@example.com",
+"approvalNotes": "Booking confirmed. Meeting point: San Agustín Central Park, 7:00 AM"
+},
+"metadata": {
+"correlationId": "c40a8400-e29b-41d4-a716-446655440040",
+"causationId": "cmd-approve-booking-1122",
+"userId": "a30a8400-e29b-41d4-a716-446655440030"
+}
+}
+Standard envelope fields
+All events emitted by the system must include the following fields in the envelope:
+
+eventId (UUID): Unique event identifier used for idempotency.
+
+eventType (string): Event name in PascalCase format.
+
+aggregateId (UUID): Identifier of the aggregate that generated the event.
+
+aggregateType (string): Aggregate type (e.g., Booking, TourPlan, Agency).
+
+occurredAt (ISO 8601): Exact UTC timestamp of when the business event took place.
+
+version (integer): Event schema version to manage its evolution.
+
+payload (object): Event data specific to each type.
+
+metadata.correlationId (UUID): Tracking ID to trace the transaction across microservices.
+
+metadata.causationId (UUID): Identifier of the event or command that caused this event.
+
+metadata.userId (UUID): Identifier of the user who initiated the action...
