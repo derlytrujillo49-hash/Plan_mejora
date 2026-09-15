@@ -1,121 +1,91 @@
 # Documentation Rules
 
-> These rules determine how documentation is written, organized, and maintained in this project.
-> Documentation that does not follow these rules may be rejected in code review.
+> These rules determine how documentation is written, organized, and maintained in this project. Documentation that does not follow these rules may be rejected during code review.
 
 ---
 
-## Core principle
+## Fundamental Principle
 
-> **"Documentation is code. If it's not up to date, it's broken."**
+> **"Documentation is code. If it is not up to date, it is broken."**
 
-Every HU that modifies system behavior MUST include updating the affected documents.
-The DoD requires it.
+Any User Story (US) that modifies system behavior MUST include updates to the affected documents. The Definition of Done (DoD) requires this.
 
 ---
 
-## Language
+## Language Standard
 
 | Artifact | Language |
-|----------|----------|
-| Source code (variables, functions, classes) | English |
-| Code comments | English |
-| Commits | English (Conventional Commits) |
-| Branch names | English |
-| Markdown documentation | English |
-| OpenAPI contracts (descriptions) | English |
-| Error messages returned to frontend | English (or localized) |
-| Internal system logs | English |
+| :--- | :--- |
+| **Source code** (variables, functions, classes) | English |
+| **Code comments** | English |
+| **Commit messages** | English (*Conventional Commits*) |
+| **Branch names** | English |
+| **Markdown documentation** | English |
+| **OpenAPI contracts** (descriptions) | English |
+| **Error messages returned to the frontend** | English (or localized) |
+| **Internal system logs** | English |
 
-> **Rule:** Once the language for each category is chosen, it is binding for the entire project.
-> Mixing languages in the same category is grounds for PR rejection.
-
----
-
-## File structure
-
-```
-Each section has its README.md that explains the folder's purpose.
-Content documents use kebab-case.md (e.g.: domain-map.md, risk-register.md).
-Templates are prefixed with _ to appear first (e.g.: _template-hu.md, _template-adr.md).
-ADRs are numbered sequentially: ADR-001-short-title.md.
-```
+> **Rule:** Once a language is chosen for a category, it is binding for the entire project. Mixing languages ​​within the same category is grounds for rejecting the Pull Request (PR).
 
 ---
 
-## What to document and what NOT to
+## File Structure
 
-### DO document
-
-| What | Where |
-|------|-------|
-| Non-obvious architectural decisions | `05-architecture/decisions/records/ADR-NNN.md` |
-| Business rules and domain invariants | `02-domain/entities-and-rules.md` |
-| API contracts for each service | `07-api/contracts/openapi/[service].yaml` |
-| Data model changes | `06-data/models.md` |
-| Operational procedures | `13-operations/` |
-| Identified risks | `15-project-control/risks.md` |
-
-### DO NOT document
-
-- What the code already says clearly (do not repeat in comments what can be read in the code)
-- Temporary decisions or experiments that will be reverted
-- Implementation details of external libraries (those have their own documentation)
-- Change history (that's what git log is for)
+* Every folder in the repository has a `README.md` file explaining its purpose.
+* Content documents use `kebab-case.md` formatting (e.g., `domain-map.md`, `risk-register.md`).
+* Templates are prefixed with an underscore `_` so they appear first (e.g., `_template-us.md`, `_template-adr.md`).
+* Architectural Decision Records (ADRs) are numbered sequentially: `ADR-001-short-title.md`.
 
 ---
 
-## Owners per section
+## What to Document and What NOT to Document
 
-| Section | Owner | Review frequency |
-|---------|-------|-----------------|
+### What MUST be documented
+
+| Content | Location |
+| :--- | :--- |
+| **Non-obvious architectural decisions** | `05-architecture/decisions/records/ADR-NNN.md` |
+| **Business rules and domain invariants** | `02-domain/entities-and-rules.md` |
+| **Service API contracts** | `07-api/contracts/openapi/[service].yaml` |
+| **Data model changes** | `06-data/models.md` |
+| **Operational procedures** | `13-operations/` |
+| **Identified risks** | `15-project-control/risks.md` |
+
+### What NOT to document
+
+* What the code itself clearly expresses (avoid redundant comments).
+* Temporary decisions or experiments that will be reverted.
+* Internal details of external libraries (they have their own official documentation).
+* Manual change logs (use `git log` for this).
+
+---
+
+## Section Owners
+
+| Section | Owner | Review Frequency |
+| :--- | :--- | :--- |
 | `00-governance/` | Tech Lead | Start of each sprint |
-| `02-domain/` | Tech Lead + PO | When the domain changes |
-| `04-requirements/` | Product Owner | Each sprint |
-| `05-architecture/` | Tech Lead | Each design decision |
-| `07-api/contracts/` | Service-owning developer | Each API change |
-| `09-microservices/` | Service-owning developer | Each release |
-| `13-operations/` | DevOps / On-call | After each incident |
-| `15-project-control/` | Tech Lead | Weekly review |
+| `02-domain/` | Tech Lead + Product Owner | Upon domain changes |
+| `04-requirements/` | Product Owner | Every sprint |
+| `05-architecture/` | Tech Lead | Upon each design decision |
+| `07-api/contracts/` | Service owner (developer) | Upon each API change |
+| `09-microservices/` | Service owner (developer) | Every deployment/release |
+| `13-operations/` | DevOps / On-call | After resolving each incident |
+| `15-project-control/` | Tech Lead | Weekly review | ---
 
----
-
-## Document format
+## Document Format and Style
 
 ### Headings
-- `# H1` — only one per file; it is the title
-- `## H2` — main sections
-- `### H3` — subsections
-- Do not use H4 or deeper; if you need it, the document has too much hierarchy
+* `# H1`: Only one per file (corresponds to the main title).
+* `## H2`: Main sections.
+* `### H3`: Subsections.
+* Do not use `#### H4` or deeper levels. If a more complex hierarchy is required, the document should be simplified or split.
 
 ### Tables
-Use tables for comparisons, registers, and matrices. Do not use tables for simple lists.
+Use tables strictly for comparisons, logs, matrices, and structured data. Do not use tables for simple lists.
 
-### Code
-Always use code blocks with the language specified:
-````
+### Code Blocks
+Always specify the language for the corresponding code block:
+
 ```typescript
-const x = 1;
-```
-````
-
-### Template instructions
-Blocks marked `> [!NOTE] INSTRUCTIONS` indicate the document is an unfilled template.
-Remove them when the document is complete.
-
----
-
-## Update process
-
-1. The developer identifies which documents their change affects
-2. Updates the documents together with the code (same PR)
-3. The reviewer verifies the documentation is up to date
-4. If the PR closes a HU that had API impact → the OpenAPI contract must be updated
-
----
-
-## Correlations
-
-- Git conventions → `00-governance/git-conventions.md`
-- Per-microservice documentation standard → `00-governance/microservices-documentation.md`
-- Definition of Done (docs as part of DoD) → `00-governance/definition-of-done.md`
+const sampleVariable: string = "HTE Document Rule";
