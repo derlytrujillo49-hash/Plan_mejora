@@ -1,252 +1,44 @@
-# Entities, Value Objects, and Business Rules
+# Domain Entities and Business Rules
 
-> **What to fill in here:** The building blocks of the domain following the DDD tactical model.
-> This document translates domain knowledge (obtained in Event Storming) into code models.
+## 1. Core Entities
 
-> **Stack note:** The concepts of Entity, Value Object, and Aggregate are language-independent.
-> Code examples (classes, interfaces, decorators) are written in pseudo-TypeScript
-> to illustrate the idea. To see the implementation in your technology:
-> [`_stacks/node-typescript.md`](../_stacks/node-typescript.md) ·
-> [`_stacks/java-spring.md`](../_stacks/java-spring.md) ·
-> [`_stacks/python-fastapi.md`](../_stacks/python-fastapi.md) ·
-> [`_stacks/go.md`](../_stacks/go.md)
+### Agency (Provider)
+* **Attributes:** `id`, `trade_name`, `nit` (Tax ID), `rnt` (National Tourism Registry), `email`, `phone`, `address`, `municipality`, `social_media` (JSON/links), `status` (*Pending*, *Approved*, *Inactive*).
+* **Description:** Entity representing the local travel agency responsible for publishing and managing tourism packages.
 
----
+### Tourism Plan (Service)
+* **Attributes:** `id`, `agency_id`, `title`, `description`, `itinerary`, `destination_municipality`, `tourism_type` (category), `duration`, `image_gallery` (max. 10 images), `status` (*Active*, *Inactive*).
+* **Description:** Tourism offer or package published by an agency for browsing and comparison.
 
-## Tactical DDD concepts
+### Rate
+* **Attributes:** `id`, `plan_id`, `user_type` (*Adult*, *Child*, *Group* / *Season*), `price` (positive amount), `conditions`.
+* **Description:** Configuration of differentiated costs for purchasing a tourism plan.
 
-### Entity
-An **Entity** is an object defined by its identity, not its attributes.
-Two entities are equal if they have the same ID, even if all their other attributes differ.
+### Availability Calendar
+* **Attributes:** `id`, `plan_id`, `date`, `max_capacity`, `reserved_spots`, `date_status` (*Available*, *Unavailable*, *Full*).
+* **Description:** Daily tracking of offered capacity/inventory to prevent overbooking.
 
-```
-✓ Entity: User (two users with different emails are still distinct by their ID)
-✓ Entity: Order (changes state but remains the same order)
-✗ Not an entity: Money (10 USD == 10 USD regardless of which bill)
-```
+### Booking
+* **Attributes:** `id`, `tourist_id`, `plan_id`, `service_date`, `number_of_people`, `total_amount`, `booking_status` (*Pending*, *Approved*, *Cancelled*), `accepted_terms` (boolean), `acceptance_timestamp`. * **Description:** A booking request submitted by a tourist to secure a spot in a specific plan.
 
-### Value Object (VO)
-A **Value Object** is an object defined by its attributes; it has no identity of its own.
-It is immutable — if an attribute changes, it is a new VO.
-
-```
-✓ Value Object: Address (5th Street #10-20, Neiva, Huila)
-✓ Value Object: Money (USD 150.00)
-✓ Value Object: Email (user@example.com)
-✓ Value Object: DateRange (2024-01-01 → 2024-01-31)
-```
-
-### Aggregate
-An **Aggregate** is a cluster of entities and VOs treated as a unit.
-It has an **Aggregate Root** which is the entry point — internal objects can only be
-accessed through the root.
-
-```
-Order (Aggregate Root)
-  ├── OrderItems[] (Entities inside the aggregate)
-  ├── DeliveryAddress (Value Object)
-  └── OrderTotal (Calculated Value Object)
-```
-
-**Golden rule of the Aggregate:** Transactions do not cross aggregate boundaries.
-If you need to modify two aggregates in one operation, use a Domain Event and a Saga.
-
-### Business Rules
-**Business Rules** (invariants) are the constraints the domain must always satisfy.
-They live in the Aggregate Root and are validated on every operation.
+### Review and Rating
+* **Attributes:** `id`, `booking_id`, `tourist_id`, `plan_id`, `rating` (1 to 5 stars), `comment`, `moderation_status` (*Pending*, *Approved*, *Rejected*).
+* **Description:** An evaluation left by the customer after completing their tourism experience.
 
 ---
 
-## System entities
+## 2. Business Rules
 
-### Entity: [EntityName]
+* **RN-01 (RNT Verification):** Every newly registered agency must enter its National Tourism Registry (RNT) number and remain in *Pending Approval* status until the platform administrator validates its authenticity.
 
-**Context:** [Bounded Context it belongs to]
+* **RN-02 (Deletion of Plans with Bookings):** An agency cannot delete a tourism plan that has active bookings (*Pending* or *Approved*). The system must issue an alert blocking the action.
 
-**Description:** [What it represents in the business, in one sentence]
+* **RN-03 (Overselling / Overbooking Prevention):** When a booking request is registered, the system must check available capacity in the `Availability Calendar` in real-time. If capacity is exhausted, the date will automatically be marked as *Full*, and new requests will be rejected.
 
-**Attributes:**
+* **RN-04 (Authentication and Security Lockouts):** After 5 consecutive failed login attempts, the account will be temporarily locked for 15 minutes. Sessions will expire due to inactivity after 30 minutes.
 
-| Attribute | Type | Description | Required | Rules |
-|-----------|------|-------------|---------|-------|
-| id | UUID | Unique identifier | Yes | Auto-generated on creation |
-| [attribute] | [type] | [description] | [Yes/No] | [validations] |
-| createdAt | DateTime | Creation date | Yes | Immutable, set on creation |
-| updatedAt | DateTime | Last modification | Yes | Updated automatically |
+* **RN-05 (Legal Acceptance of Terms / Data Protection):** No booking can be processed without explicit acceptance of the Terms and Conditions and the Personal Data Protection Policy (Law 1581 of 2012). The system must store the timestamp (exact date and time) of the acceptance. * **RN-06 (Review Eligibility):** Only tourists with a previously *Approved* and completed booking may rate and leave comments on a tour package.
 
-**Lifecycle / States:**
+* **RN-07 (Content Moderation):** All user-submitted reviews undergo a manual moderation process by the Administrator to prevent offensive language or spam before becoming public.
 
-```
-[State A] ──(action)──▶ [State B] ──(action)──▶ [State C]
-                               │
-                          (action)
-                               ▼
-                          [State D]
-```
-
-| State | Description | Allowed transitions |
-|-------|-------------|---------------------|
-| [DRAFT] | Just created, not published | → ACTIVE, → CANCELLED |
-| [ACTIVE] | Available for use | → INACTIVE, → CANCELLED |
-| [CANCELLED] | Finished without completing | Terminal state |
-
-**Invariants (Business rules that MUST ALWAYS hold):**
-
-```
-INV-001: [Rule name]
-  - Rule: [Price must always be greater than 0]
-  - Violation: [An entity with price <= 0 cannot be saved]
-  - Implementation: Validate in the constructor and in the attribute setter
-
-INV-002: [Rule name]
-  - Rule: [The owner of an entity cannot be changed once assigned]
-  - Violation: DomainException is thrown if an attempt is made to change ownerID
-  - Implementation: The setter validates that ownerID is still null
-```
-
-**Code example (TypeScript/Java):**
-
-```typescript
-// TypeScript — Entity with invariants
-class Order {
-  private constructor(
-    private readonly id: OrderId,
-    private status: OrderStatus,
-    private items: OrderItem[],
-    private total: Money,
-  ) {}
-
-  static create(items: OrderItem[]): Order {
-    if (items.length === 0) {
-      throw new DomainException('INV-001: An order must have at least one item');
-    }
-    const total = items.reduce((sum, item) => sum.add(item.subtotal), Money.zero('COP'));
-    return new Order(OrderId.new(), OrderStatus.PENDING, items, total);
-  }
-
-  confirm(): void {
-    if (this.status !== OrderStatus.PENDING) {
-      throw new DomainException('INV-002: Only a PENDING order can be confirmed');
-    }
-    this.status = OrderStatus.CONFIRMED;
-    // Record domain event
-    this.addEvent(new OrderConfirmedEvent(this.id, this.total));
-  }
-}
-```
-
----
-
-## System Value Objects
-
-### Value Object: [VOName]
-
-**Description:** [What it represents]
-
-**Attributes:**
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| [field1] | [type] | [description] |
-
-**Validation rules:**
-
-```
-- [Email must have a valid format: text@domain.extension]
-- [The extension must be at least 2 characters]
-```
-
-**Example:**
-
-```typescript
-// Value Object — Immutable, validated in the constructor
-class Email {
-  private readonly value: string;
-
-  constructor(email: string) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new DomainException(`Invalid email: ${email}`);
-    }
-    this.value = email.toLowerCase();
-  }
-
-  toString(): string { return this.value; }
-
-  equals(other: Email): boolean { return this.value === other.value; }
-}
-```
-
----
-
-## System Aggregates
-
-### Aggregate: [AggregateName]
-
-**Aggregate Root:** [RootEntityName]
-
-**Internal entities:**
-- [InternalEntity1] — [why it is inside the aggregate]
-- [InternalEntity2] — [why it is inside the aggregate]
-
-**Value Objects:**
-- [VO1], [VO2]
-
-**Aggregate invariants:**
-
-```
-AGGR-INV-001: The sum of items.subtotal must equal aggregate.total
-AGGR-INV-002: An item cannot be added if the order is in CONFIRMED status
-AGGR-INV-003: No two items can have the same productId
-```
-
-**Why do these objects form an aggregate?**
-> [Explanation of why these objects must be kept consistent as a unit.
-> E.g.: "An Order and its Items must always be consistent — an Item cannot exist
-> without its Order, and the Order total must always reflect the sum of the Items."]
-
----
-
-## Summary table of tactical building blocks
-
-| Name | Type | Bounded Context | Aggregate Root? |
-|------|------|----------------|----------------|
-| [Entity A] | Entity | [Context A] | Yes |
-| [Entity B] | Entity | [Context A] | No (inside A) |
-| [VO: Email] | Value Object | Shared | N/A |
-| [VO: Money] | Value Object | Shared | N/A |
-| [Service X] | Domain Service | [Context B] | N/A |
-
----
-
-## Domain Services
-
-A **Domain Service** is business logic that does not naturally belong to any entity.
-Use it when:
-- The operation involves multiple entities or aggregates
-- It would be unnatural for the operation to belong to a single entity
-- The logic does not need its own state
-
-```typescript
-// Domain Service — Stateless, orchestrates logic between entities
-class PriceCalculationService {
-  calculateTotal(items: OrderItem[], discounts: Discount[], taxes: Tax[]): Money {
-    const subtotal = items.reduce((sum, item) => sum.add(item.subtotal), Money.zero('COP'));
-    const withDiscount = discounts.reduce((total, d) => d.apply(total), subtotal);
-    const withTaxes = taxes.reduce((total, tax) => tax.apply(total), withDiscount);
-    return withTaxes;
-  }
-}
-```
-
----
-
-## Correlation with code
-
-| Domain artifact | Package / folder in code | File |
-|----------------|--------------------------|------|
-| Aggregate Root `Order` | `src/domain/order/` | `Order.ts` |
-| Value Object `Email` | `src/domain/shared/value-objects/` | `Email.ts` |
-| Domain Service `PriceCalculationService` | `src/domain/order/services/` | `PriceCalculationService.ts` |
-| Repository `OrderRepository` | `src/domain/order/ports/` | `OrderRepository.ts` |
-
-> See hexagonal structure in `05-architecture/hexagonal-architecture.md`
+* **RN-08 (Image Optimization and Upload):** Each tour package allows the upload of up to 10 images in valid formats (JPG, PNG, WEBP). The system must automatically compress the images, reducing their final size to a maximum of 500 KB without a perceptible loss in quality.
