@@ -1,110 +1,54 @@
 # Problem Framing — Problem Definition
 
-> **Why this document exists:** Before designing solutions, the team must be
-> aligned on the problem it solves. This document captures that alignment.
-> A well-defined problem is already halfway to a solution.
-
----
-
 ## 1. The problem in one sentence
 
-> Complete this template:
+**Local travel agencies and tourists seeking or promoting tourism services in the Huila department** face difficulties in **finding, promoting, and comparing tourism offers centrally** because **agencies often operate independently and some lack their own website or a suitable digital platform, while tourists must consult multiple websites, social media, and informal channels**. This results in **wasted time, fragmented information, reduced visibility for agencies, and difficulty making informed decisions**.
 
-**[User segment]** who **[usage context]** struggle with **[pain/problem]**
-because **[root cause]**, resulting in **[quantifiable impact]**.
-
-**Example:**
-> **Mid-sized company inventory operators** who **manage catalogs of more than 500 products**
-> struggle with **stock control across multiple warehouses** because **current systems
-> do not support real-time synchronization**, resulting in **15% of orders with stock errors
-> and 3 hours of manual correction work per day**.
+The SRS specifically identifies that local agencies may have a limited digital presence and that tourists struggle to compare options based on price, duration, and included services.
 
 ---
 
 ## 2. Affected users
 
-| Segment | Description | Estimated size | Priority |
-|---------|-------------|---------------|---------|
-| [Segment A] | [Who they are, what they do] | [N users] | High |
-| [Segment B] | [Who they are] | [N users] | Medium |
+| Segment                     | Description                                                                                                                  | Estimated size           | Priority |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------ | -------- |
+| Local travel agencies       | Companies in the Huila department that offer tourism packages and services and need to promote and manage their offerings. | Not specified in the SRS | High     |
+| Tourists / Travelers        | Domestic or international users looking to browse, compare, and book tourism offers in Huila. | Not specified in the SRS | High     |
+| Platform administrator      | User responsible for verifying agencies, moderating content and reviews, generating reports, and managing the platform. | Not specified in the SRS | Medium   |
+
+The SRS defines three main roles: **Administrator, Agency, and Tourist**, with distinct permissions and functions.
 
 ### Jobs-to-be-done (JTBD)
 
-> What job is the user trying to do when they "hire" our product?
+**For agencies:**
 
-**When** [situation / context],
-**I want** [motivation / what they are trying to achieve],
-**so that** [expected outcome / benefit].
+> **When** a local travel agency needs to promote its tourism packages,
+> **I want to** register, publish, and manage my offerings on a shared platform,
+> **so that** tourists can discover my services and the agency can improve its digital visibility. **For tourists:**
+
+> **When** I look for a tourism package in Huila,
+> **I want** to browse and compare different offers based on price, duration, and included services,
+> **so that** I can find an option that meets my needs and make an informed decision.
+
+These tasks are directly related to the objectives and functionalities defined in the SRS.
 
 ---
 
 ## 3. Evidence of the problem
 
-> The problem must be real. Document the evidence you have.
+| Evidence type              | Source                      | Date | Key finding                                                                                                                        |
+| -------------------------- | --------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Problem documentation      | SRS Huila Travel Expedition | 2026 | Many local agencies lack their own websites or digital platforms to effectively promote their services. |
+| User analysis              | SRS Huila Travel Expedition | 2026 | Tourists consult multiple websites, social media, and informal channels to find tourism offers. |
+| Needs analysis             | SRS Huila Travel Expedition | 2026 | There is a need to centralize offers and facilitate comparison based on price, duration, and included services. |
+| Functional requirements    | SRS Huila Travel Expedition | 2026 | Features for agency registration, package publishing, search filters, calendars, and booking requests are required. |
 
-| Evidence type | Source | Date | Key finding |
-|--------------|--------|------|------------|
-| User interviews | [N] interviews with [profile] | [date] | [what they said] |
-| Support data | Support tickets | [period] | [% of tickets on this topic] |
-| Benchmarking | [Competitors / market] | [date] | [how others solve it] |
-| Direct observation | [Shadowing / field research] | [date] | [what was observed] |
+The SRS constitutes the primary source of evidence available for this problem definition. The document does not present interviews, surveys, or quantitative metrics regarding the problem; therefore, figures should not be fabricated.
 
 ---
 
 ## 4. Current user solution (and its problems)
 
-> How does the user solve the problem today?
-
-| Current solution | Limitations | Cost/Friction |
-|-----------------|------------|--------------|
-| [Excel / manual process] | [Does not scale, errors, slow] | [X hours/day] |
-| [Legacy system] | [No API, no integration] | [Y errors/week] |
-
----
-
-## 5. Solution hypothesis
-
-> This is the first draft of the solution direction. It is not a commitment.
-
-**We believe that** [describe the high-level solution]
-**for** [the user segment],
-**will achieve** [the expected benefit].
-**We will know we succeeded when** [specific metric].
-
----
-
-## 6. Success metrics (North Star)
-
-| Metric | Current baseline | 6-month target | How to measure it |
-|--------|----------------|---------------|-------------------|
-| [Business metric 1] | [current value] | [target value] | [instrument] |
-| [Adoption metric] | [current value] | [target value] | [instrument] |
-
-**North Star Metric:** [The single metric that best captures the value delivered]
-
----
-
-## 7. Hypothesis risks
-
-| Risk | Probability | Impact | Experiment to validate |
-|------|------------|--------|----------------------|
-| [Users will not adopt the change] | High | High | [Pilot with N users] |
-| [The problem is not as frequent as we think] | Medium | High | [Support log analysis] |
-
----
-
-## 8. Out of scope (we do not solve)
-
-> Explicitly define which related problems you are NOT solving in this version.
-> This prevents scope creep.
-
-- [Related problem that is out of scope: why]
-- [Feature users ask for but we are not doing now: reason]
-
----
-
-## Correlations
-
-- Product vision → `03-product/vision.md`
-- HUs that implement this solution → `04-requirements/user-stories.md`
-- Detailed KPIs → `13-operations/README.md`
+| Current solution                       | Limitations                                                                                                                           | Cost/Friction                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Social media and informal channels     | Information is scattered, making it difficult to compare different offers. | Time lost consulting various sources.
