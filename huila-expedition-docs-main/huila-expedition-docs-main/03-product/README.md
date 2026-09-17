@@ -120,4 +120,100 @@ These functionalities correspond to the features outlined in the SRS functional 
 * Integrations and additional functionalities.
 * Potential future inclusion of online payment mechanisms.
 
-**Note:** Online payment management and financial intermediation are not part of the project's initial phase.
+
+# Product Backlog — Huila Travel Expedition
+
+## High priority
+
+### HU-AGENCY-001: Register agency
+
+**As a** travel agency
+**I want** to register my agency on the platform
+**So that** I can publish and promote my tour packages.
+
+### HU-AUTH-002: Log in
+
+**As a** registered user
+**I want** to log in securely
+**So that** I can access the functions corresponding to my role.
+
+### HU-AGENCY-003: Manage tour packages
+
+**As a** travel agency
+**I want** to create, edit, and delete my tour packages
+**So that** I can keep my offerings up to date.
+
+### HU-TOURIST-004: View tour packages
+
+**As a** tourist
+**I want** to view available tour packages
+**So that** I can discover travel options in Huila.
+
+### HU-TOURIST-005: Search and filter tour packages
+
+**As a** tourist
+**I want** to search for and filter packages by municipality, price, and duration
+**So that** I can find options that suit my needs.
+
+### HU-TOURIST-006: Compare offers
+
+**As a** tourist
+**I want** to compare different tour packages
+**So that** I can select an option based on price, duration, and included services.
+
+## Medium priority
+
+### HU-AGENCY-007: Manage availability
+
+**As an** agency
+**I want** to manage the availability of my packages via a calendar
+**So that** tourists can see the available dates.
+
+### HU-TOURIST-008: Request a booking
+
+**As a** tourist
+**I want** to request a booking for a tour package
+**So that** I can initiate my travel plans with an agency.
+
+### HU-AGENCY-009: Manage bookings
+
+**As an** agency
+**I want** to approve or cancel booking requests
+**So that** I can manage bookings for my packages. ### HU-TOURIST-010: View history
+
+**As a** tourist
+**I want** to view my booking history
+**So that** I can review my previous requests.
+
+### HU-TOURIST-011: Rate and review
+
+**As a** tourist
+**I want** to rate and leave a review for a tourism service
+**So that** I can share my experience.
+
+## Low priority
+
+### HU-ADMIN-012: View statistics
+
+**As an** administrator
+**I want** to view platform statistics
+**So that** I can monitor system performance.
+
+### HU-ADMIN-013: Generate reports
+
+**As an** administrator
+**I want** to generate PDF reports
+**So that** I can analyze and document system information.
+
+### HU-ADMIN-014: Manage featured content
+
+**As an** administrator
+**I want** to manage featured plans
+**So that** I can promote specific offers within the platform.
+
+## Out of initial MVP scope
+
+* Online payment management.
+* Financial intermediation.
+
+
