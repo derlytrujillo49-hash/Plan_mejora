@@ -1,4 +1,4 @@
-Problem Framing — Huila Travel Expedition
+**Problem Framing — Huila Travel Expedition**
 
 The problem
 
@@ -22,3 +22,42 @@ Why it is worth solving
 It is important to address this issue by creating a local web platform that centralizes tourism offers from Huila-based agencies. Huila Travel Expedition will enable the publishing, management, browsing, and comparison of tour packages based on criteria such as price, duration, and included services.
 
 The solution aims to enhance the digital visibility of local agencies, simplify the process of finding and selecting tour packages for tourists, and promote tourism and culture in the Huila department.
+
+
+**Discovery Brief — Huila Travel Expedition**
+
+**User research**
+
+The initial project analysis was based on identifying the problem regarding digital tourism in the Huila department and the technology assessment presented in the SRS.
+
+The project identifies two main groups of affected users:
+
+-**Travel agencies:** need to improve their digital presence and have a shared space to promote their services.
+-**Tourists:** need to view and compare various tourism offers in a centralized manner.
+
+The SRS does not document formal user interviews or usability test results; therefore, this data remains to be gathered during a future discovery phase.
+
+**Key insights**
+
+-Tourism information is scattered across various websites, social media platforms, and informal channels.
+-Local agencies may struggle to improve their digital visibility.
+-Tourists need to compare options based on price, duration, and included services.
+-There is an opportunity to centralize tourism offerings for the Huila department.
+-The project aims to differentiate itself from international platforms by focusing on local agencies and Huila's cultural identity.
+
+**Validated assumptions**
+
+**Validated**
+
+-There is a need to centralize tourism offerings from Huila agencies.
+-Plan comparisons can be made based on criteria such as price, duration, and included services.
+-Agencies can benefit from a shared space to promote their services.
+
+**Not yet validated**
+
+-Exact level of user satisfaction with current solutions.
+-Specific interface and navigation preferences.
+-Actual frequency with which tourists would use the platform.
+-Additional features users would consider priorities.
+
+These latter hypotheses will need to be validated through interviews, surveys, or user testing during the project's subsequent stages.
