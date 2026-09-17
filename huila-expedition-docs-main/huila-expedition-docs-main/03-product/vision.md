@@ -1,95 +1,73 @@
 # Product Vision
 
-> The vision is the team's north star. All sprints, design decisions,
+> The vision is the team's North Star. All sprints, design decisions,
 > and trade-offs are evaluated against this vision.
-> It must be ambitious yet achievable, inspiring but specific.
+> It must be ambitious yet achievable, inspiring yet specific.
 
 ---
 
 ## Vision statement
 
-> Use the Geoffrey Moore template:
+**For** domestic and international tourists seeking information and travel options in the Huila department,
+**who** need to find, view, and compare tourism offers from various agencies in one place,
+**the** Huila Travel Expedition
+**is a** local web platform for tourism information and comparison
+**that** centralizes offers from Huila-based agencies and facilitates the search and comparison of travel packages based on price, duration, and included services,
+**unlike** international tourism platforms primarily oriented toward global markets,
+**our product** focuses on local agencies and on promoting tourism and the cultural identity of Huila.
 
-**For** [target customer]
-**who** [has the need / faces the problem]
-**the** [product name]
-**is a** [product category]
-**that** [main benefit / reason to choose]
-**unlike** [competing alternative]
-**our product** [key differentiator].
+The vision aligns with the SRS, which proposes a local platform to centralize tourism offerings and facilitate the comparison of travel packages.
 
 ---
 
 ## Team mission
 
-> In 1-2 sentences: why does this team exist? What change in the world does it seek to achieve?
+Our team exists to develop a web platform that connects tourism offerings from Huila-based agencies with tourists seeking reliable and easily comparable options, thereby helping to increase the visibility of local agencies and promote regional tourism and culture.
 
 ---
 
 ## Strategic pillars
 
-Pillars are the focus areas that take us from mission to vision.
-They should be few (3-5) and consistent over time.
+| Pillar                          | Description                                                                                        | Success metrics                                                               |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Centralization of offerings** | Gathering travel packages published by Huila-based agencies onto a single platform. | Number of registered agencies and number of published packages. |
+| **Comparison and accessibility** | Enabling tourists to view and compare packages based on price, duration, and included services. | Number of searches and package inquiries. |
+| **Regional promotion**          | Promoting the destinations, tourism, and culture of the Huila department. | Number of packages linked to Huila destinations and views of those offers. |
+| **User experience**             | Offering a clear, intuitive, and easy-to-use interface for tourists and agencies. | Browsing time and user satisfaction. |
 
-| Pillar | Description | Success metrics |
-|--------|-------------|----------------|
-| [Pillar 1: e.g. Speed] | [What it means for our product] | [KPIs] |
-| [Pillar 2: e.g. Reliability] | [Description] | [KPIs] |
-| [Pillar 3: e.g. Scale] | [Description] | [KPIs] |
+These pillars align with the SRS objectives: facilitating plan management for agencies, enabling comparison for tourists, improving the search experience, and promoting tourism and culture in Huila.
 
 ---
 
 ## High-level roadmap
 
-> The roadmap shows how the product evolves over time.
-> Horizon 1 (0-3 months): high certainty, detail in HUs
-> Horizon 2 (3-6 months): medium certainty, epics
-> Horizon 3 (6-12 months): low certainty, focus areas
-
-```
-Q1 2024 ──── Q2 2024 ──── Q3 2024 ──── Q4 2024
-     │              │              │              │
-  [MVP]      [Feature A]    [Feature B]   [Scale]
-  Validate    Expand         Deepen        Grow
-  hypothesis  the market     the value
+```text
+H1 (0-3 months) ───────── H2 (3-6 months) ───────── H3 (6-12 months)
+│                         │                         │
+MVP                  Expansion                  Evolution
+│                         │                         │
+Informational and        Improvements and          Future
+comparative web          new features              functionalities
+platform
 ```
 
-| Horizon | Period | Objective | Epics / Features | Uncertainty |
-|---------|--------|----------|----------------|-------------|
-| H1 (Now) | [Q1] | [Objective] | [Epic 1, Epic 2] | Low |
-| H2 (Next) | [Q2] | [Objective] | [Epic 3, Area X] | Medium |
-| H3 (Later) | [Q3-Q4] | [Objective] | [Area Y, Area Z] | High |
+| Horizon        | Period     | Objective                                                     | Epics / Features                                                                                   | Uncertainty |
+| -------------- | ---------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------- |
+| **H1 (Now)**   | 0-3 months | Develop the local web platform MVP. | Agency registration, plan publishing, search, filters, and offer viewing/comparison. | Low         |
+| **H2 (Next)**  | 3-6 months | Improve the experience and expand platform management. | Bookings, availability management, reviews, and reports. | Medium      |
+| **H3 (Later)** | 6-12 months | Evolve the platform and expand its capabilities. | Integrations and future features based on project needs. | High        |
+
+> **Note:** The SRS specifies that the initial version does not include online payment processing or financial intermediation. Therefore, payment is not listed as an MVP feature.
 
 ---
 
 ## Product principles
 
-These principles guide design and prioritization decisions when there are trade-offs.
+1. **Local focus:** The platform must prioritize promoting agencies, destinations, and the culture of the Huila department.
 
-1. **[Principle 1]:** [description. Example: "New user first — every new feature must be understandable in 2 minutes without onboarding"]
+2. **Clear and comparable information:** Information regarding plans must allow tourists to identify and compare aspects such as price, duration, and included services.
 
-2. **[Principle 2]:** [description. Example: "Opinionated about what matters, flexible on the secondary"]
+3. **Ease of use:** Features must be intuitive and enable tourists and agencies to carry out their processes simply.
 
-3. **[Principle 3]:** [description]
+4.**Reliable information:** The platform must ensure that the information published by the agencies is clear, organized, and reliable to facilitate decision-making.
 
----
-
-## Product Definition of Done
-
-> The product is "done" when it achieves these OKRs:
-
-**Objective:** [What we want to achieve]
-
-| Key Result | Baseline | Target | Date |
-|------------|---------|--------|------|
-| KR1: [specific metric] | [current value] | [target value] | [date] |
-| KR2: [metric] | [current] | [target] | [date] |
-| KR3: [business metric] | [current] | [target] | [date] |
-
----
-
-## Correlations
-
-- Problem framing (the why) → `03-product/problem-framing.md`
-- Backlog that implements the vision → `04-requirements/user-stories.md`
-- KPIs in operations → `13-operations/README.md`
