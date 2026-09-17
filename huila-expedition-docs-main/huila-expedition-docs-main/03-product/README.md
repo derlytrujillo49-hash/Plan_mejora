@@ -1,113 +1,24 @@
-# 03 — Product Definition
+Problem Framing — Huila Travel Expedition
 
-> **What is this?** The answer to "what are we going to build?". It is not "how" — that comes in
-> architecture. Here the validated problem, product vision, and build plan are defined.
+The problem
 
-## Why this section exists
+Who is affected?
+Local travel agencies in the Huila department and domestic and international tourists interested in visiting the region.
 
-Without a clear product definition:
-- The team builds features nobody asked for
-- Scope grows out of control (scope creep)
-- There is no way to know whether the project was successful
+What is the problem?
+Many local travel agencies lack their own websites or digital platforms to effectively promote their services. Furthermore, agencies with a digital presence often operate independently, making it difficult for tourists to find and compare different offers in one place.
 
-This section is the contract between the team and stakeholders about **what will be built and why**.
+When does it occur?
+The problem arises when agencies need to promote their tour packages and when tourists are seeking information to select an offer based on price, trip duration, and included services.
 
----
+What is the impact?
+Agencies suffer from limited digital visibility and struggle to compete in an increasingly digitized tourism market. For tourists, the search for information involves checking various websites, social media, or informal channels, resulting in wasted time, fragmented information, and difficulty making an informed decision.
 
-## What is here and how to fill it in
+How is it currently solved?
+Currently, tourists consult various websites, social media, and informal channels to find tourism offers. Some agencies use their own websites or digital channels, but information remains scattered across different platforms, making comparison difficult.
 
-### `problem-framing.md` ⭐ (Start here)
-Articulates the problem before proposing solutions.
-**Fill in:** who has the problem, exactly what pain, evidence of the problem, how they solve it today.
+Why it is worth solving
 
-**Format:**
-```markdown
-## The problem
-**Who has it?** [Profile of the affected user]
-**What problem do they have?** [Description of the pain, specific]
-**When does it occur?** [Situation that triggers the problem]
-**What is the impact?** [Concrete consequence: time, money, frustration]
-**How do they solve it today?** [Current workaround and why it is insufficient]
+It is important to address this issue by creating a local web platform that centralizes tourism offers from Huila-based agencies. Huila Travel Expedition will enable the publishing, management, browsing, and comparison of tour packages based on criteria such as price, duration, and included services.
 
-## Why it is worth solving
-[Justification for the value of building this system]
-```
-
-### `discovery-brief.md`
-Findings from user research.
-**Fill in:** interviews conducted, insights found, assumptions validated and invalidated.
-
-### `vision.md` ⭐
-The product's north star in 1-2 sentences.
-**Fill in:** format "For [user], who [need], [system name] is a [product type]
-that [key benefit]. Unlike [alternative], our product [differentiator]."
-
-### `roadmap.md`
-Delivery plan over time.
-**Fill in:** milestones per quarter/sprint, which features go into each phase.
-
-**Format:**
-```markdown
-## Phase 1 — MVP (Sprint 1-3)
-- [Critical feature 1]
-- [Critical feature 2]
-
-## Phase 2 — Iteration (Sprint 4-6)
-- [Improvements based on feedback]
-```
-
-### `product-backlog.md` ⭐
-Prioritized list of everything that must be built.
-**Fill in:** using the `_template-backlog.md` template. Order by user value.
-
-### `_template-prd.md`
-Complete Product Requirements Document.
-**Use when:** you need to formalize requirements for an external stakeholder or academic delivery.
-
-### `_template-discovery-brief.md`
-Template for documenting user research.
-
-### `_template-problem-framing.md`
-Structured template for framing the problem.
-
-### `_template-backlog.md`
-Template for initial backlog user stories.
-
----
-
-## User Story format
-
-```markdown
-## HU-[SERVICE]-[NNN]: [Title]
-**As** [user role]
-**I want** [action they want to perform]
-**So that** [benefit they receive]
-
-### Acceptance criteria
-- [ ] AC1: Given [context], when [action], then [expected result]
-- [ ] AC2: ...
-
-### Technical notes
-[Constraints or implementation considerations]
-
-**Estimation:** [SP]  **Priority:** [High/Medium/Low]
-```
-
----
-
-## Correlations with other sections
-
-| This section feeds... | Why |
-|-----------------------|-----|
-| `04-requirements/` | Backlog HUs are formalized as requirements |
-| `02-domain/` | Problem framing reveals domain entities |
-| `15-project-control/technical-backlog.md` | Technical debt identified during definition |
-
----
-
-## Questions this section must answer
-
-- What problem exactly are we solving?
-- What does product success look like?
-- What do we build first and why?
-- What do we NOT build in this cycle?
+The solution aims to enhance the digital visibility of local agencies, simplify the process of finding and selecting tour packages for tourists, and promote tourism and culture in the Huila department.
