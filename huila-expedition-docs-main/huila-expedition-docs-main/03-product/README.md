@@ -24,6 +24,7 @@ It is important to address this issue by creating a local web platform that cent
 The solution aims to enhance the digital visibility of local agencies, simplify the process of finding and selecting tour packages for tourists, and promote tourism and culture in the Huila department.
 
 
+
 **Discovery Brief — Huila Travel Expedition**
 
 **User research**
@@ -61,3 +62,20 @@ The SRS does not document formal user interviews or usability test results; ther
 -Additional features users would consider priorities.
 
 These latter hypotheses will need to be validated through interviews, surveys, or user testing during the project's subsequent stages.
+
+
+
+**Product Vision — Huila Travel Expedition**
+**Vision statement**
+
+For domestic and international tourists seeking information and travel options for the Huila department—and who need to find, browse, and compare various tourism offers in one place—Huila Travel Expedition is a local web-based tourism information and comparison platform. It centralizes offers from travel agencies and makes it easy to search for and compare them based on price, duration, and included services.
+
+Unlike international platforms geared toward global markets, our product focuses on local agencies and on promoting tourism and the cultural identity of the Huila department.
+
+**Product purpose**
+
+To create a shared digital space for Huila’s travel agencies and provide tourists with easy access to a centralized, organized, and easily comparable range of tourism offers.
+
+**Vision for success**
+
+The product will be considered successful when it enables agencies to register, publish, and manage their travel packages, while allowing tourists to easily browse and compare the various available offers.
