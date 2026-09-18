@@ -2,42 +2,47 @@
 
 > **Read this document before making your first commit on the project.**
 
-## Branch strategy
+## Branch Strategy
 
-```
+```text
 main        ← Production. Merge from release only. Always stable.
   └── dev   ← Continuous integration. Merge from features.
-        └── feat/[description]    ← One branch per feature/user story
-        └── fix/[description]     ← One branch per bugfix
-        └── chore/[description]   ← Infrastructure, docs, dependency changes
+        └── feat/[description]    ← One branch per feature or user story
+        └── fix/[description]     ← One branch per bug fix
+        └── chore/[description]   ← Documentation, infrastructure, or dependency changes
         └── hotfix/[description]  ← Urgent fixes directly to main
 ```
 
-**Rules:**
-- Nobody commits directly to `main` or `dev`
-- Every task = one branch + one Pull Request
-- One branch = one task (do not mix different features)
-- Branches are deleted after merge
+### Rules
 
----
+* Nobody commits directly to `main` or `dev`.
+* Every task must use one branch and one Pull Request.
+* One branch must represent one task.
+* Different features or tasks must not be mixed in the same branch.
+* Branches must be deleted after the Pull Request is merged.
 
-## Branch naming format
+## Branch Naming Format
 
-```
+```text
 [type]/[description-in-kebab-case]
-
-Examples:
-feat/oauth2-login
-fix/schedule-overlap-calculation
-chore/update-spring-dependencies
-hotfix/null-token-expiration
 ```
 
----
+### Examples
 
-## Commit format (Conventional Commits)
-
+```text
+feat/agency-registration
+feat/tourist-plan-management
+feat/reservation-management
+fix/reservation-status
+chore/update-documentation
+hotfix/security-validation
 ```
+
+## Commit Format
+
+Huila Travel Expedition uses **Conventional Commits**.
+
+```text
 [type]([scope]): [lowercase description, imperative mood, no trailing period]
 
 [optional body — explain WHY, not what]
@@ -45,56 +50,85 @@ hotfix/null-token-expiration
 [optional footer — issue/user story references]
 ```
 
-**Types:**
-| Type | When to use |
-|------|-------------|
-| `feat` | New functionality |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Formatting, whitespace (no logic change) |
-| `refactor` | Code refactoring without behavior change |
-| `test` | Add or modify tests |
-| `chore` | Tooling, dependencies, CI |
-| `perf` | Performance improvement |
+### Commit Types
 
-**Examples:**
+| Type       | When to use                                            |
+| ---------- | ------------------------------------------------------ |
+| `feat`     | New functionality                                      |
+| `fix`      | Bug fix                                                |
+| `docs`     | Documentation only                                     |
+| `style`    | Formatting or whitespace changes without logic changes |
+| `refactor` | Code refactoring without behavior changes              |
+| `test`     | Adding or modifying tests                              |
+| `chore`    | Tooling, dependencies, or CI changes                   |
+| `perf`     | Performance improvements                               |
+
+### Examples
+
+```text
+feat(agency): add agency registration
+
+fix(reservation): correct reservation status validation
+
+docs(domain): update business rules
+
+docs(governance): update git conventions
+
+chore(project): update documentation structure
 ```
-feat(iam): implement JWT login
 
-fix(scheduling): correct schedule overlap validation
-Closes #42
+## Pull Request Policy
 
-docs(api): update actor service OpenAPI contract
+* **Size:** Maximum 400 lines of code, excluding tests. If larger, split the work.
+* **Reviewers:** Minimum 1 approval before merging.
+* **Review time:** The reviewer has a maximum of 24 business hours.
+* **Template:** Use `.github/pull_request_template.md`.
+* **Green CI:** All pipeline checks must pass before merging.
 
-chore(deps): upgrade Spring Boot to 3.2.0
+## Merge Policy
+
+* Use **Squash and Merge** for features to keep the `dev` history clean.
+* Use **Merge Commit** for releases to `main` to preserve the full history.
+* Do not use **Rebase and Merge** because it can create confusion in shared history.
+
+## Tags and Versioning
+
+The project follows **Semantic Versioning (SemVer)**:
+
+```text
+MAJOR.MINOR.PATCH
 ```
 
----
+Example:
 
-## Pull Request policy
+```text
+v1.2.0
+```
 
-- **Size:** maximum 400 lines of code (excluding tests). If larger, split it.
-- **Reviewers:** minimum 1 approval before merging
-- **Review time:** reviewer has a maximum of 24 business hours
-- **Template:** use the template at `.github/pull_request_template.md`
-- **Green CI:** merge only proceeds if all pipeline checks pass
-
----
-
-## Merge policy
-
-- Use **Squash and Merge** for features (keeps `dev` history clean)
-- Use **Merge Commit** for releases to `main` (preserves full history)
-- **Do not** use Rebase & Merge (creates confusion in shared history)
-
----
-
-## Tags and versioning
-
-Follow [SemVer](https://semver.org/): `MAJOR.MINOR.PATCH`
+When releasing a production version:
 
 ```bash
-# When releasing to production
 git tag -a v1.2.0 -m "Release v1.2.0: add reports module"
 git push origin v1.2.0
 ```
+
+## Documentation Commits
+
+Documentation changes must use the `docs` commit type.
+
+Examples:
+
+```bash
+git commit -m "docs(domain): update domain map"
+```
+
+```bash
+git commit -m "docs(requirements): update user stories"
+```
+
+```bash
+git commit -m "docs(governance): update git conventions"
+```
+
+Documentation commits should contain only documentation changes related to the stated purpose of the commit.
+
