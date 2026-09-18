@@ -1,161 +1,455 @@
 # Non-Functional Requirements (NFR)
 
-> NFRs define the **qualities of the system** — not what it does but how well it does it.
-> The golden rule: every NFR must have a metric. "The system must be fast" is not an NFR.
-> "The P99 latency of the /orders endpoint must be < 200ms under 500 RPS load" is.
-
----
-
-## How to write a measurable NFR?
-
-| Bad | Good |
-|-----|------|
-| "The system must be fast" | "P95 latency must be < 300ms under 1000 concurrent RPS" |
-| "The system must be secure" | "All endpoints require a valid JWT; tokens expire in 1 hour" |
-| "The system must scale" | "The system must support up to 5000 concurrent users without degradation" |
-| "The system must be available" | "Availability SLO: 99.9% monthly (maximum 44 min downtime/month)" |
+> NFRs define the qualities of the Huila Travel Expedition system, specifying how well the system must perform rather than what functionality it provides.
+>
+> The following NFRs are based on the requirements established in the Huila Travel Expedition SRS.
 
 ---
 
 ## NFR-001: Performance
 
-| Attribute | Metric | Test condition |
-|-----------|--------|---------------|
-| P95 latency — critical endpoints | < 300ms | Under [N] RPS load |
-| P99 latency — critical endpoints | < 500ms | Under [N] RPS load |
-| P95 latency — non-critical endpoints | < 1000ms | Normal load |
-| Minimum throughput | [N] RPS | Without degradation |
-| Service startup time | < 30 seconds | Cold start |
+| Attribute                   | Metric                     | Test condition                                      |
+| --------------------------- | -------------------------- | --------------------------------------------------- |
+| Main page loading           | ≤ 3 seconds                | Under normal conditions                             |
+| Tourist plan detail loading | ≤ 3 seconds                | Under normal conditions                             |
+| Query response              | 95% of queries < 3 seconds | Normal system operation                             |
+| Frequent database queries   | < 1 second                 | Frequent queries according to database requirements |
 
-**Defined critical endpoints:**
-- `POST /[resource]` — [justification for why it is critical]
-- `GET /[resource]/:id` — [justification]
+**Defined critical operations:**
 
-**Load testing tools:**
-- k6, Apache JMeter, Locust, Gatling
+* Main page loading — critical because it is the first point of access for tourists.
+* Tourist plan detail loading — critical because tourists need to review information before making a reservation.
+* Reservation processing — the SRS establishes processing reservations in less than 3 seconds.
 
-**Where is it validated?** CI/CD in the staging pipeline before production.
+**Performance validation tools:**
+
+* Google PageSpeed
+* Lighthouse
+
+**Where is it validated?**
+
+Performance must be verified through functional and performance tests before deployment.
 
 ---
 
 ## NFR-002: Availability
 
-| Environment | SLO | Maintenance window | Max downtime/month |
-|------------|-----|-------------------|-------------------|
-| Production | 99.9% | Sundays 2am-4am | 44 minutes |
-| Staging | 95% | No restriction | 36 hours |
+| Environment | SLO                  | Maintenance window             | Maximum downtime/month |
+| ----------- | -------------------- | ------------------------------ | ---------------------- |
+| Production  | 99% monthly          | Scheduled maintenance excluded | 7.2 hours              |
+| Development | Not specified in SRS | Not specified                  | Not specified          |
 
-**Monthly error budget in production:** 44 minutes
-**Error Budget policy:** If > 50% of the error budget is consumed in the first half of the month,
-feature deploys are frozen until the next month and stability is prioritized.
+**Monthly availability target in production:** 99%.
+
+The SRS specifies that the service must remain available 99% of the time, except during scheduled maintenance.
 
 **Health checks:**
-- `GET /health` — Liveness: responds 200 if the process is alive
-- `GET /health/ready` — Readiness: responds 200 only if it can process traffic (DB connected, dependencies OK)
+
+The SRS does not define specific `/health` or `/health/ready` endpoints.
+
+Health monitoring and operational endpoints may be defined later in the architecture and operations documentation.
 
 ---
 
-## NFR-003: Scalability
+## NFR-003: Scalability and Concurrency
 
-| Scenario | Expected behavior |
-|---------|------------------|
-| Gradual load growth | Horizontal auto-scaling activated when CPU > 70% |
-| Sudden spike (Black Friday, etc.) | System scales in < 2 minutes |
-| Load reduction | Scale-down without interrupting active traffic |
-| Horizontal scaling limit | Up to [N] instances per service |
+The SRS defines scalability and concurrent-user requirements at two levels.
 
-**Strategy:** Stateless horizontal scaling — each instance does not store state in memory.
-State goes in Redis (sessions, cache) or PostgreSQL (persistent data).
+| Scenario                     | Expected behavior                                                    |
+| ---------------------------- | -------------------------------------------------------------------- |
+| Normal concurrent navigation | Support 30–50 simultaneous users without service degradation         |
+| Peak business traffic        | Support up to 500 concurrent users according to RT05                 |
+| Reservation processing       | Process reservations in less than 3 seconds                          |
+| Growth of the platform       | Support increased volume of agencies and reservations                |
+| Infrastructure scaling       | Migration from shared hosting to VPS without rewriting the base code |
+
+### Initial infrastructure
+
+The SRS establishes an initial shared-hosting environment of:
+
+```text
+1 vCPU
+1 GB RAM
+5 GB SSD
+```
+
+The initial concurrent navigation requirement is **30–50 users without service degradation**.
+
+### Scaled infrastructure
+
+The SRS establishes a possible VPS environment of:
+
+```text
+2 vCPU
+4 GB RAM
+20 GB SSD
+```
+
+The migration to VPS must be completable in **less than 8 hours of technical work**.
+
+The SRS also defines RT05 as a requirement to support at least **500 concurrent users during traffic peaks**, process reservations in less than 3 seconds and scale without performance degradation.
 
 ---
 
 ## NFR-004: Security
 
 ### Authentication and Authorization
-- All private endpoints require a valid JWT in the `Authorization: Bearer <token>` header
-- JWT tokens expire in **1 hour**
-- Refresh tokens valid for **7 days**
-- RBAC (Role-Based Access Control): roles defined in `00-governance/security-policy.md`
+
+The SRS requires secure authentication and role-based access control.
+
+The system defines three main roles:
+
+```text
+Administrator
+Agency
+Tourist
+```
+
+Protected functionality must only be accessible according to the corresponding role and permissions.
+
+The SRS does **not** define JWT expiration times or refresh-token durations, so these values must not be considered mandatory NFRs at this stage.
 
 ### Data transmission
-- HTTPS mandatory in production (TLS 1.2+)
-- HTTP only in local development
 
-### Sensitive data
-- Passwords: hashing with bcrypt (cost factor ≥ 12) or Argon2id
-- PII (personal data): encrypted at rest
-- Secrets/keys: only in environment variables or vault, **never in code**
+* HTTPS is mandatory for communication between the client and server.
+* The system must use a valid and current SSL certificate.
+* HTTP access must be automatically redirected to HTTPS.
 
-### OWASP Top 10
-Code must be reviewed against the OWASP Top 10 on each release.
-Tools: SAST (SonarQube/Snyk), dependency scanning, DAST in staging.
+### Password security
 
-### Regulatory compliance
-- [GDPR / Habeas Data / PCI-DSS / etc.] — as applicable to the project
+* Passwords must never be stored in plain text.
+* Passwords must use Laravel's native hashing mechanism.
+* The original password must not be recoverable from the stored value.
 
----
+### Personal data
 
-## NFR-005: Observability
+Personal data must be handled according to **Law 1581 of 2012**.
 
-| Pillar | Requirement | Tool |
-|--------|------------|------|
-| Logs | Structured JSON format + Correlation ID | Winston / Logback |
-| Metrics | RED (Rate, Errors, Duration) per endpoint | Prometheus + Grafana |
-| Traces | End-to-end distributed traces | OpenTelemetry + Jaeger |
-| Alerts | Alert in < 5 min when SLI violates SLO | Alertmanager / PagerDuty |
+The system must record explicit acceptance of terms and conditions with the corresponding date and time.
 
-**Correlation ID:** Each external request generates a UUID correlationId propagated in all logs and spans of that transaction.
+### Information security
 
----
+According to RT03, the system must protect user and transaction information through:
 
-## NFR-006: Maintainability
+* Encryption.
+* Robust authentication.
+* Audit logging.
+* Access controls.
 
-| Metric | Target |
-|--------|--------|
-| Test coverage | ≥ 80% of lines (≥ 90% in the domain) |
-| Cyclomatic complexity | ≤ 10 per function |
-| Technical debt | Resolution time < 1 sprint from registration |
-| Onboarding time | A new dev can deploy locally in < 1 hour following `10-devops/local-setup.md` |
-| Average build time | < 5 minutes in CI |
+### Security validation
 
----
+Security must be verified through:
 
-## NFR-007: Portability
+* Authentication tests.
+* Authorization tests.
+* Password-storage verification.
+* HTTPS verification.
+* Input validation.
+* Access-control tests.
 
-- All services are deployed as Docker images
-- Images work in any environment with Kubernetes 1.28+
-- No service depends on the host operating system
-- Environment variables are the only source of environment-specific configuration
+The SRS references Law 1581 of 2012, Law 1480 of 2011 and PCI-DSS as part of the project's legal and security considerations.
 
 ---
 
-## NFR-008: Disaster Recovery (DR / Recovery)
+## NFR-005: Usability and Compatibility
 
-| Scenario | RTO (Recovery Time Objective) | RPO (Recovery Point Objective) |
-|---------|------------------------------|-------------------------------|
-| Single service failure | < 2 minutes (K8s restart) | 0 (stateless) |
-| Primary database failure | < 5 minutes (failover to replica) | < 1 second (synchronous replication) |
-| Availability zone loss | < 15 minutes | < 5 minutes |
-| Full region disaster | < 4 hours (DR in secondary region) | < 1 hour |
+Although usability and compatibility are separate RNFs in the SRS, they are included here because they define system quality from the user's perspective.
+
+### Responsive interface
+
+| Attribute          | Metric                          | Test condition             |
+| ------------------ | ------------------------------- | -------------------------- |
+| Responsive design  | Functional from 320px width     | Mobile, tablet and desktop |
+| Interface approach | Mobile-first                    | Supported devices          |
+| Touch interaction  | Buttons, forms and menus usable | Touch-screen devices       |
+
+The interface must work correctly on:
+
+* Mobile phones.
+* Tablets.
+* Desktop computers.
+
+The SRS proposes **Bootstrap or Tailwind CSS** for the mobile-first implementation.
+
+### Browser compatibility
+
+| Browser | Requirement                             |
+| ------- | --------------------------------------- |
+| Chrome  | Compatible with the latest two versions |
+| Firefox | Compatible with the latest two versions |
+| Safari  | Compatible with the latest two versions |
+| Edge    | Compatible with the latest two versions |
+
+Compatibility must be verified before each deployment.
+
+### Form validation
+
+Registration and reservation forms must:
+
+* Validate information in real time.
+* Display clear and specific error messages.
+* Display messages in Spanish.
+* Prevent submission when required fields are invalid.
 
 ---
 
-## NFR priority matrix
+## NFR-006: Image and Storage Performance
 
-| NFR | Priority (P1/P2/P3) | Validated in CI? | Owner |
-|-----|---------------------|-----------------|-------|
-| Performance | P1 | Yes (k6 in staging) | [Tech Lead] |
-| Availability | P1 | Yes (health checks) | [DevOps] |
-| Security | P1 | Yes (SAST + OWASP) | [Security] |
-| Scalability | P2 | Manual (quarterly) | [DevOps] |
-| Observability | P1 | Yes (smoke test in CI) | [Tech Lead] |
-| Maintainability | P2 | Yes (coverage in CI) | [Team] |
+The system must automatically compress or resize images uploaded to the platform.
+
+| Attribute          | Metric                       |
+| ------------------ | ---------------------------- |
+| Maximum image size | 500 KB per image             |
+| Storage capacity   | 5–10 GB according to the SRS |
+| Compression        | Automatic                    |
+| Visual quality     | No significant visual loss   |
+
+### Expected behavior
+
+```text
+Upload image
+      ↓
+Validate image
+      ↓
+Compress / resize
+      ↓
+Verify maximum size
+      ↓
+Store image
+```
+
+The compression must occur without significantly affecting the user experience.
+
+This requirement corresponds to **RNF2** of the SRS.
+
+---
+
+## NFR-007: Reliability and Data Integrity
+
+The system must maintain the integrity and reliability of information, especially for reservations, calendars and inventory.
+
+### Reservation integrity
+
+The database must use mechanisms such as:
+
+* ACID transactions.
+* Locking mechanisms.
+* Referential integrity.
+* Availability verification.
+
+These mechanisms must prevent overbooking when multiple reservations are processed concurrently.
+
+### Database performance
+
+The SRS establishes that frequent queries should have response times below **1 second**.
+
+### Backup
+
+| Requirement        | Metric                    |
+| ------------------ | ------------------------- |
+| Database backup    | Weekly                    |
+| System-file backup | Weekly                    |
+| Backup storage     | Separate from main server |
+| Restoration        | Less than 4 hours         |
+
+The SRS establishes periodic backup and a recovery time of less than 4 hours.
+
+---
+
+## NFR-008: Portability and Technological Updating
+
+The SRS establishes that the application must be capable of moving from shared hosting to a VPS without rewriting the base code.
+
+| Attribute           | Metric                              |
+| ------------------- | ----------------------------------- |
+| Migration to VPS    | Less than 8 hours of technical work |
+| Base code rewriting | Not required                        |
+| Technology updating | Periodic                            |
+
+### Technology
+
+The SRS proposes:
+
+```text
+Backend: Laravel 10 or higher
+PHP: 8.2+
+Database: MySQL 8.0
+Alternative database: PostgreSQL
+Cache: Redis
+Frontend: Bootstrap or Tailwind CSS
+```
+
+The system must receive periodic software and component updates to maintain security patches and adapt to technological changes.
+
+---
+
+## NFR-009: Observability and Audit Logging
+
+The SRS establishes **audit logging** as part of information security.
+
+Security-relevant operations should be traceable, including:
+
+```text
+Successful authentication
+Failed authentication
+Unauthorized access
+Agency verification
+Reservation operations
+Review moderation
+Administrative actions
+```
+
+Logs must support the identification of:
+
+* User involved, when applicable.
+* Action performed.
+* Date and time.
+* Resource or operation affected.
+* Result of the operation.
+
+### Important limitation
+
+The SRS does **not** define specific metrics for:
+
+* Log processing time.
+* Alert response time.
+* Distributed tracing.
+* Correlation IDs.
+* Prometheus/Grafana.
+* OpenTelemetry.
+* PagerDuty.
+
+Therefore, these values and technologies are not mandatory NFRs at this stage and may be defined later in the operations and architecture documentation.
+
+---
+
+## NFR-010: Maintainability and Technical Support
+
+The SRS establishes the need for permanent and qualified technical support and periodic technological updates.
+
+### Requirements
+
+* Technical support must be available to address incidents.
+* Software components must be updated periodically.
+* Security patches must be maintained.
+* The system must adapt to technological changes.
+* Migration to VPS must not require rewriting the base code.
+
+### Metrics defined by the SRS
+
+| Attribute          | Metric                      |
+| ------------------ | --------------------------- |
+| VPS migration      | < 8 hours of technical work |
+| Technology updates | Periodic                    |
+| Technical support  | Permanent and qualified     |
+
+The SRS does **not** define metrics for test coverage, cyclomatic complexity, technical debt or build time. These should only be added if the team later establishes them as project standards.
+
+---
+
+## NFR-011: Disaster Recovery and Backup
+
+| Scenario                | Recovery requirement             |
+| ----------------------- | -------------------------------- |
+| Database/system failure | Restoration in less than 4 hours |
+| Data backup             | Weekly                           |
+| Backup storage          | Separate from main server        |
+
+### Recovery flow
+
+```text
+System failure
+      ↓
+Identify latest valid backup
+      ↓
+Restore backup
+      ↓
+Verify database integrity
+      ↓
+Verify application
+      ↓
+Restore service
+```
+
+**Recovery Time Objective (RTO):** less than 4 hours.
+
+The SRS does not define a specific **Recovery Point Objective (RPO)**, so no RPO value is established in this document.
+
+---
+
+## NFR Priority Matrix
+
+| NFR               | Priority         | Validated in CI?     | Owner            |
+| ----------------- | ---------------- | -------------------- | ---------------- |
+| Performance       | High             | Not specified in SRS | Development team |
+| Availability      | High             | Not specified in SRS | Technical team   |
+| Scalability       | High             | Not specified in SRS | Technical team   |
+| Security          | High / Essential | Not specified in SRS | Development team |
+| Usability         | High             | Not specified in SRS | Development team |
+| Compatibility     | High             | Not specified in SRS | Development team |
+| Reliability       | High             | Not specified in SRS | Technical team   |
+| Portability       | High / Essential | Not specified in SRS | Technical team   |
+| Observability     | High / Essential | Not specified in SRS | Technical team   |
+| Maintainability   | High / Essential | Not specified in SRS | Technical team   |
+| Disaster Recovery | High             | Not specified in SRS | Technical team   |
+
+> **Note:** The SRS establishes priorities such as High/Essential for the requirements but does not define CI/CD validation pipelines or individual owners for each NFR. Therefore, these fields must be confirmed by the team before becoming formal project rules.
+
+---
+
+## NFR Traceability to the SRS
+
+| NFR                                            | SRS Requirement                    |
+| ---------------------------------------------- | ---------------------------------- |
+| NFR-001 Performance                            | RNF1, RT05                         |
+| NFR-002 Availability                           | RNF10                              |
+| NFR-003 Scalability and Concurrency            | RNF3, RNF12, RT05                  |
+| NFR-004 Security                               | RNF7, RNF8, RNF9, RT03, RF16, RF20 |
+| NFR-005 Usability and Compatibility            | RNF4, RNF5, RNF6                   |
+| NFR-006 Image Performance                      | RNF2                               |
+| NFR-007 Reliability and Data Integrity         | RNF11 + database requirements      |
+| NFR-008 Portability and Technological Updating | RNF12, RT04                        |
+| NFR-009 Observability and Audit Logging        | RT03                               |
+| NFR-010 Maintainability and Technical Support  | RT02, RT04                         |
+| NFR-011 Disaster Recovery                      | RNF11                              |
 
 ---
 
 ## Correlations
 
-- Detailed SLOs and SLAs → `13-operations/README.md`
-- Pipeline that validates NFRs → `10-devops/README.md`
-- Incidents related to NFR violations → `13-operations/incident-management.md`
-- Security checklist → `00-governance/security-policy.md`
+* Governance security rules → `00-governance/security-policy.md`
+* Technical security rules → `00-governance/technical-security-rules.md`
+* User stories → `03-product/product-backlog.md`
+* Functional requirements → `04-requirements/functional.md`
+* Architecture → `05-architecture/README.md`
+* Database requirements → `06-data/models.md`
+* API documentation → `07-api/`
+* Microservices → `09-microservices/services/`
+* DevOps and deployment → `10-devops/`
+* Operations and SLOs → `13-operations/`
+
+---
+
+## Source of Truth
+
+The **Huila Travel Expedition SRS** is the primary source for these Non-Functional Requirements.
+
+The measurable values defined in this document come from the SRS, including:
+
+```text
+RNF1  → 95% of queries < 3 seconds
+RNF2  → Images ≤ 500 KB
+RNF3  → 30–50 simultaneous users
+RNF4  → Responsive from 320px
+RNF5  → Latest two versions of Chrome, Firefox, Safari and Edge
+RNF6  → Real-time form validation
+RNF7  → HTTPS + valid SSL certificate
+RNF8  → Laravel native password hashing
+RNF9  → Law 1581 of 2012
+RNF10 → 99% monthly availability
+RNF11 → Weekly backup + restoration < 4 hours
+RNF12 → VPS migration < 8 hours of technical work
+RT05  → Up to 500 concurrent users + reservations < 3 seconds
+```
+
+Where the SRS does not define a specific metric, technology or operational value, this document explicitly marks it as **not specified in the SRS** instead of introducing an unsupported project requirement.
