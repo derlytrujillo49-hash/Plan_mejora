@@ -2,7 +2,7 @@
 
 > The design system is the shared visual language between design and development.
 > It prevents inconsistencies, accelerates design, and reduces rework.
-> **Rule:** Before creating a new component, check here if it already exists.
+> *Rule:* Before creating a new component, check here if it already exists.
 
 ---
 
@@ -12,40 +12,40 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 
 ### Colors
 
-```css
+css
 /* Base palette */
---color-primary-50:  #[hex];   /* Lightest */
---color-primary-100: #[hex];
---color-primary-500: #[hex];   /* Default */
---color-primary-900: #[hex];   /* Darkest */
+--color-primary-50:  #E8F5E9;   /* Lightest SENA Green tint */
+--color-primary-100: #C8E6C9;
+--color-primary-500: #39A900;   /* Default — SENA Corporate Green */
+--color-primary-900: #1B5E20;   /* Darkest SENA Green shade */
 
---color-secondary-500: #[hex];
---color-neutral-50:  #[hex];
---color-neutral-900: #[hex];
+--color-secondary-500: #00324D; /* Complementary dark blue from institutional emblem */
+--color-neutral-50:  #F8F9FA;   /* Light application background */
+--color-neutral-900: #212529;   /* Dark primary text color */
 
 /* Semantic colors */
---color-success:  #[hex];      /* Green — success, confirmed */
---color-warning:  #[hex];      /* Yellow — caution, pending */
---color-error:    #[hex];      /* Red — error, cancelled */
---color-info:     #[hex];      /* Blue — neutral information */
+--color-success:  #28A745;      /* Green — success, available / booking request successfully sent */
+--color-warning:  #FFC107;      /* Yellow — caution, few spots left / booking approval pending status */
+--color-error:    #DC3545;      /* Red — no slots left, error, booking cancelled */
+--color-info:     #17A2B8;      /* Blue — general system information or support help */
 
 /* Text */
---color-text-primary:   #[hex];
---color-text-secondary: #[hex];
---color-text-disabled:  #[hex];
+--color-text-primary:   #212529; /* High contrast primary text */
+--color-text-secondary: #6C757D; /* Secondary text, subtitles, or field labels */
+--color-text-disabled:  #ADB5BD; /* Disabled state of interactive elements */
 
 /* Backgrounds */
---color-bg-page:    #[hex];
---color-bg-card:    #[hex];
---color-bg-overlay: rgba([r],[g],[b], 0.5);
-```
+--color-bg-page:    #F8F9FA;     /* Main web platform background */
+--color-bg-card:    #FFFFFF;     /* Background for tour plan cards */
+--color-bg-overlay: rgba(33, 37, 41, 0.5); /* Semitransparent backdrop for modals (Login/Booking) */
+
 
 ### Typography
 
-```css
-/* Families */
---font-family-sans:  '[Font name], sans-serif';
---font-family-mono:  '[Mono font name], monospace';
+css
+/* Families (Based on responsive specifications with Bootstrap / Tailwind CSS from SRS) */
+--font-family-sans:  'system-ui', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+--font-family-mono:  'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 
 /* Sizes (modular scale 1.25) */
 --font-size-xs:   0.75rem;   /* 12px */
@@ -65,11 +65,11 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 --line-height-tight:  1.2;
 --line-height-normal: 1.5;
 --line-height-loose:  1.8;
-```
+
 
 ### Spacing
 
-```css
+css
 /* 4px system */
 --space-1:  0.25rem;   /* 4px */
 --space-2:  0.5rem;    /* 8px */
@@ -79,11 +79,11 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 --space-8:  2rem;      /* 32px */
 --space-12: 3rem;      /* 48px */
 --space-16: 4rem;      /* 64px */
-```
+
 
 ### Borders and shadows
 
-```css
+css
 /* Border radius */
 --radius-sm: 4px;
 --radius-md: 8px;
@@ -94,7 +94,7 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
 --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
 --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
-```
+
 
 ---
 
@@ -104,12 +104,12 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 
 | Variant | Use | Disabled state |
 |---------|-----|----------------|
-| Primary | Main action on the page | `opacity: 0.5; cursor: not-allowed` |
+| Primary | Main action on the page | opacity: 0.5; cursor: not-allowed |
 | Secondary | Secondary actions | same |
 | Danger | Destructive actions (delete) | same |
 | Ghost | Tertiary actions, links | same |
 
-**Usage rules:**
+*Usage rules:*
 - Only one Primary action per view
 - Danger only with modal confirmation ("Are you sure?")
 - Buttons have a loading state for async operations
@@ -127,15 +127,10 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 | Toggle | Enable/disable a feature |
 | DatePicker | Date selection |
 
-**Error messages in forms:**
+*Error messages in forms:*
 - The message appears below the field, in red
 - The field border turns red
 - The message says how to fix the error, not just that there is an error
-
-```
-✓ "The email must have the format user@domain.com"
-✗ "Invalid email"
-```
 
 ### Feedback
 
@@ -164,13 +159,13 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 
 ### Principles
 
-1. **Confirm before destroying:** Any action that permanently deletes or modifies data requires a confirmation modal.
+1. *Confirm before destroying:* Any action that permanently deletes or modifies data requires a confirmation modal.
 
-2. **Immediate feedback:** Every action must have a visual response in < 100ms (even if it is just the loading state).
+2. *Immediate feedback:* Every action must have a visual response in < 100ms (even if it is just the loading state).
 
-3. **Prevent rather than correct:** Validate in real time in the form, not only on submit.
+3. *Prevent rather than correct:* Validate in real time in the form, not only on submit.
 
-4. **Empty state as a feature:** The screen without data is the new user's first impression — guide them to the first action.
+4. *Empty state as a feature:* The screen without data is the new user's first impression — guide them to the first action.
 
 ### Error handling
 
@@ -191,7 +186,7 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 |--------|-----------------|
 | Text contrast | WCAG AA (4.5:1 for normal text, 3:1 for large text) |
 | Keyboard navigation | All interactive elements accessible with Tab |
-| Form labels | All fields with associated label (`for` / `aria-label`) |
+| Form labels | All fields with associated label (for / aria-label) |
 | Images | Descriptive alt text on all non-decorative images |
 | Visible focus | Visible focus indicator on all interactive elements |
 
@@ -199,6 +194,6 @@ Tokens are the design system's variables. Changing a token changes the entire sy
 
 ## Correlations
 
-- Navigation map → `12-ux-ui/navigation-map.md`
-- Wireframes → `12-ux-ui/wireframes.md`
-- UX non-functional requirements → `04-requirements/non-functional.md`
+- Navigation map → 12-ux-ui/navigation-map.md
+- Wireframes → 12-ux-ui/wireframes.md
+- UX non-functional requirements → 04-requirements/non-functional.md
