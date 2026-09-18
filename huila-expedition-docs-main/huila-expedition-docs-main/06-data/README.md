@@ -1,64 +1,43 @@
-# 06 — Data
+# 06 — Data — Huila Travel Expedition
 
-> **What is this?** How the system stores, structures, and migrates data.
-> In microservices, data management is one of the most complex challenges.
+This module centralizes the architecture, persistence policies, data dictionary, and schema migration strategies for the *Huila Travel Expedition* system, ensuring optimal performance on shared hosting or VPS environments (RNF3, RNF12).
 
-## Fundamental principle in microservices
+---
 
-> **Each microservice owns its own data.**
+## Fundamental principle in our system
 
-No service should access another service's database directly. If it needs data from another
-service, it requests it via API or receives it via event. This principle guarantees independence.
+> *Modular Data Isolation with Unified Consistency.*
+
+Although the system initially operates under a monolithic core in *Laravel 10+, the data is strictly segmented by modular responsibilities in **MySQL 8.0* across our bounded contexts (AgencyManagement, TourPlanManagement, ReservationBooking). No module interferes with another's business rules, ensuring that any future transition toward microservices or external synchronizations (Channel Manager) remains direct and requires no rewriting of the core codebase (RNF12).
 
 ---
 
 ## What is here and how to fill it in
 
-### `models.md` ⭐
-Data models for each microservice.
-**Fill in:** ER (entity-relationship) diagram or description of collections/tables for each service.
+### models.md ⭐
+Detailed relational data models broken down by technical service module.
+*Content:* Explicit table schemas in MySQL 8.0, foreign keys (FK), soft delete controls (deleted_at), and performance indexes designed for fast queries under 3 seconds (RNF1).
 
-**Format per service:**
-```markdown
-## Service: [name]
-**DB Engine:** [PostgreSQL / MongoDB / Redis / etc.]
-**Justification:** [why this engine for this service]
+*Mapped Modules:*
+- *Agency Module* (administradores, agencias)
+- *Plans and Destinations Module* (paquetes_turisticos, destinos, hoteles, transportes, guias)
+- *Reservations and Feedback Module* (turistas, reservas, pagos)
 
-### Table/Collection: [name]
-| Field | Type | Nullable | Description | Constraints |
-|-------|------|----------|-------------|-------------|
-| id | UUID | No | Unique identifier | PK |
-| [field] | [type] | [Yes/No] | [description] | [FK/Unique/etc.] |
+### data-dictionary.md ⭐
+Exact meaning, nullability constraints, and data types across the entire system.
+*Content:* An in-depth data dictionary, specifically focused on critical business fields prone to ambiguity, such as moderation states (status), legal identifiers (nit_agencia, rnt_agencia), and legal compliance flags (terminos_aceptados).
 
-### Indexes
-| Name | Fields | Type | Justification |
-|------|--------|------|---------------|
-```
+### modeling-conventions.md
+Naming conventions, style rules, and database auditing guidelines.
+*Content:* Strict enforcement of lowercase snake_case for tables and columns. Implementation of *UUID string (VARCHAR 36)* format identifiers to protect against enumeration attacks. Mandatory inclusion of audit fields (created_at, updated_at) and standard enablement of Soft Delete via deleted_at.
 
-### `data-dictionary.md` ⭐
-Exact meaning of each important field in the system.
-**Fill in:** especially for fields that may be ambiguous or have business rules.
+### normalization-assessment.md
+Normalization analysis and data performance justification.
+*Content:* Evaluation of database tables under the Third Normal Form (3NF). Technical justification for decoupling supporting logistical tables (hoteles, transportes, guias) to prevent data redundancy inside the core paquetes_turisticos entity.
 
-**Format:**
-```markdown
-| Field | Service | Table | Type | Detailed description | Possible values |
-|-------|---------|-------|------|---------------------|-----------------|
-| status | scheduling | schedule | ENUM | Current status of the schedule | ACTIVE, CANCELLED, PENDING |
-```
-
-### `modeling-conventions.md`
-Naming and style conventions for the project's databases.
-**Fill in:** naming (snake_case or camelCase), use of UUIDs vs sequential, standard timestamps,
-soft delete vs hard delete, auditing (created_at, updated_at, created_by).
-
-### `normalization-assessment.md`
-Analysis of the normalization level and justification for denormalizations.
-**Fill in:** for each intentional denormalization, explain why (performance, simplification).
-
-### `migration-strategy.md`
-Strategy for migrating data between schema versions.
-**Fill in:** migration tool (Flyway, Liquibase, Alembic), rollback policy,
-how to handle migrations with data in production.
+### migration-strategy.md
+Sequential strategy for updating and migrating data schemas.
+*Content:* Exclusive use of the native *Laravel Database Migrations* engine controlled through chronological timestamps (YYYY_MM_DD_HHMMSS). Forward-only migration policies and safe execution of migrations in production environments via automated deployments.
 
 ---
 
@@ -66,33 +45,28 @@ how to handle migrations with data in production.
 
 | This section is fed by... | And feeds into... |
 |---------------------------|-------------------|
-| `02-domain/entities-and-rules.md` → domain entities | DB tables |
-| `05-architecture/` → DB engine decisions | Engine choice in `models.md` |
-| `models.md` | `07-api/contracts/` → what data each service exposes |
-| `models.md` | `08-uml/` → ER diagrams |
-| `models.md` | `09-microservices/[service]/data-model.md` |
+| 02-domain/domain-events.md → Generated domain events. | Traceability and business state persistence in reservas and pagos. |
+| Software Requirements Specification (SRS) → Business RF1 to RF20. | Definition of mandatory attributes, constraints, and nullability in models.md. |
+| models.md | Travel, Agency, and Administrator front-end User Interfaces. |
+| models.md | Eloquent Models and Controllers in the Laravel Backend. |
 
 ---
 
-## Important data decisions in microservices
+## Important data decisions in our project
 
-### SQL or NoSQL?
-There is no single answer. It depends on the service:
-- **SQL** (PostgreSQL, MySQL): relational data, ACID transactions, fixed schema
-- **Document** (MongoDB): hierarchical data, flexible schema, high variability
-- **Key-value** (Redis): cache, sessions, high-speed temporary data
-- **Time series** (InfluxDB, TimescaleDB): metrics, event logs
+### SQL over NoSQL
+For Huila Travel Expedition, *MySQL 8.0* (SQL Relational Engine) was selected due to:
+- *Strict ACID Transactions:* An indispensable requirement to ensure that the workflow of requesting, approving reservations, and updating calendar inventory takes place without collisions or concurrent oversales (RF9, RF11).
+- *Native Referential Integrity:* Protects database integrity using foreign key constraints (ON DELETE RESTRICT) so a tour plan cannot be physically deleted if active or pending customer reservations are tied to it.
 
-### How to handle consistency between services?
-Without a shared database, consistency is **eventual**:
-- Saga Pattern: chain of compensating transactions
-- Outbox Pattern: guarantee that the event is published along with the transaction
+### Data Consistency
+As a modular architecture based on Laravel's Eloquent ORM, data consistency between modules is *immediate and protected by database transactions* (DB::transaction). Even if automated SMTP email notifications fail (RF12) or asynchronous interactions trigger retries, the relational state of the reservation inside MySQL remains safe and clean from corruption.
 
 ---
 
-## Questions this section must answer
+## Questions this section answers
 
-- What data does each microservice handle?
-- Why was that database engine chosen for each service?
-- How is the schema updated without breaking the system?
-- Who is the "owner" of each piece of data in the system?
+- *What data does the system handle?* Corporate identities and legal validation of travel agencies, logistical and location inventories of adventure/ecotourism plans in Huila, and the complete transaction history of tourist reservation requests.
+- *Why was MySQL 8.0 chosen?* For its proven stability in shared hosting environments (RNF3), native support for ACID transactions, and speed in processing complex query indexing.
+- *How is the schema updated without breaking the system?* Through Laravel's versioned migration files that alter the database incrementally, completely avoiding manual table modifications in production.
+- *Who is the owner of each piece of data?* Each Laravel controller holds the authorship and access permissions based on roles (Administrador, Agencia, Turista) validated by security Middlewares (RF16).
