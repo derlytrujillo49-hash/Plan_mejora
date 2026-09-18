@@ -1,18 +1,18 @@
 # Security Policy
 
-> Security is not a feature — it is a system property built from day one. This document
-> defines the mandatory practices.
-> Any deviation must be explicitly approved by the Tech Lead.
+> Security is not a feature — it is a system property built from day one. This document defines the mandatory security practices for Huila Travel Expedition.
+>
+> Any deviation from these practices must be explicitly approved by the Tech Lead or the person responsible for technical decisions.
 
 ---
 
-## Security principles
+## Security Principles
 
-1. **Defense in Depth:** Multiple security layers. If one fails, the others contain the damage.
-2. **Least Privilege:** Each component has only the minimum necessary permissions.
-3. **Fail Secure:** In case of error, the system denies access, does not allow it.
-4. **Security by Design:** Security controls are designed from the start, not added at the end.
-5. **Zero Trust:** Always verify, never implicitly trust, even within the internal network.
+1. **Defense in Depth:** Multiple security layers are used so that if one control fails, others can help contain the impact.
+2. **Least Privilege:** Each user, role, and component must have only the permissions required to perform its responsibilities.
+3. **Fail Secure:** When an error or security validation failure occurs, access must be denied by default.
+4. **Security by Design:** Security controls must be considered during requirements, design, development, testing, and deployment.
+5. **Zero Trust:** Every request must be validated according to its identity, role, and permissions, even inside the internal network.
 
 ---
 
@@ -20,25 +20,34 @@
 
 ### JWT (JSON Web Tokens)
 
-| Property | Required value |
-|----------|---------------|
-| Signing algorithm | RS256 (asymmetric) or HS256 with 256+ bit secret |
-| Access token expiration | 1 hour (`exp`) |
-| Refresh token expiration | 7 days |
-| Required claims | `sub` (userId), `iat`, `exp`, `jti` (unique token ID) |
-| Client storage | `httpOnly cookie` (web) or Keychain/Keystore (mobile) |
+Huila Travel Expedition uses secure authentication mechanisms for users accessing protected functionality.
 
-**Prohibited in the payload:**
-- Passwords
-- Card data
-- Full PII (only the user ID)
+| Property                 | Required value                                           |
+| ------------------------ | -------------------------------------------------------- |
+| Signing algorithm        | RS256 or HS256 with a strong secret of at least 256 bits |
+| Access token expiration  | 1 hour (`exp`)                                           |
+| Refresh token expiration | 7 days                                                   |
+| Required claims          | `sub` (userId), `iat`, `exp`, `jti`                      |
+| Client storage           | `httpOnly cookie` for web clients                        |
+
+**Prohibited in the JWT payload:**
+
+* Passwords.
+* Password hashes.
+* Payment or card information.
+* Complete personal information that is not required for authorization.
+* Sensitive authentication data.
 
 ### Refresh Token
 
-- Stored in the database (with bcrypt hash)
-- Mandatory rotation on each use (one refresh token = one use)
-- Invalidated on logout and on password change
-- ALL active tokens invalidated if use of a revoked token is detected
+Refresh tokens must:
+
+* Be stored securely.
+* Be stored in the database using a secure hash.
+* Be rotated when used.
+* Be invalidated when the user logs out.
+* Be invalidated after a password change.
+* Be revoked if suspicious or unauthorized reuse is detected.
 
 ---
 
@@ -46,188 +55,392 @@
 
 ### RBAC (Role-Based Access Control)
 
-| Role | Description | Permissions |
-|------|-------------|------------|
-| `SUPER_ADMIN` | System technical administrator | All |
-| `ADMIN` | Business administrator | [define] |
-| `OPERATOR` | Operator with write permissions | [define] |
-| `VIEWER` | Read-only | [define] |
-| `[CUSTOM_ROLE]` | [description] | [define] |
+Huila Travel Expedition defines three main application roles according to the SRS:
 
-**Permission model:**
+| Role            | Description            | Main permissions                                                                       |
+| --------------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `ADMINISTRATOR` | Platform administrator | Verify agencies/RNT, moderate reviews, generate reports, manage platform configuration |
+| `AGENCY`        | Travel agency user     | Manage agency information, tourist plans, calendars, inventory and reservations        |
+| `TOURIST`       | Tourist or traveler    | Search and compare plans, request reservations, consult history and publish reviews    |
 
+### Permission Model
+
+Permissions must follow the structure:
+
+```text
+[resource]:[action]
 ```
-Permission: [resource]:[action]
 
 Examples:
-  orders:create
-  orders:read
-  orders:update
-  orders:delete
-  users:read
-  reports:export
+
+```text
+agencies:create
+agencies:read
+agencies:update
+agencies:verify
+
+plans:create
+plans:read
+plans:update
+plans:delete
+
+reservations:create
+reservations:read
+reservations:update
+reservations:cancel
+
+reviews:create
+reviews:read
+reviews:moderate
+
+reports:read
+reports:export
 ```
 
-**Validation:**
-- The API Gateway validates the JWT (signature and expiration)
-- Each service validates the role permissions for the specific operation
-- Roles are included in the JWT as claim `roles: ["OPERATOR", "VIEWER"]`
+### Authorization Validation
+
+* The API Gateway or authentication layer validates the JWT signature and expiration.
+* Each service validates the user's role and permissions for the requested operation.
+* Roles may be included in the JWT as a claim such as:
+
+```json
+{
+  "roles": ["AGENCY"]
+}
+```
+
+* A user must not access resources belonging to another agency unless the operation is explicitly authorized.
+* Administrative operations must be restricted to `ADMINISTRATOR`.
 
 ---
 
-## Secure communication
+## Secure Communication
 
 ### Transmission
 
-- **HTTPS mandatory** in all environments except local
-- TLS 1.2 minimum; TLS 1.3 recommended
-- Certificates: Let's Encrypt (staging) / Corporate CA (production)
-- HSTS enabled in production
+* **HTTPS is mandatory** in staging and production environments.
+* TLS 1.2 is the minimum supported version.
+* TLS 1.3 is recommended.
+* Valid digital certificates must be used.
+* HSTS must be enabled in production.
 
-### Internal service-to-service communication
+### Internal Service-to-Service Communication
 
-- mTLS for service-to-service communication in production (if possible with service mesh)
-- Bearer token or internal API key for services that do not support mTLS
+When microservices communicate internally:
+
+* Authentication between services must be implemented.
+* Sensitive information must not be transmitted without encryption.
+* mTLS may be used for service-to-service communication in production when the infrastructure supports it.
+* Internal API keys or bearer tokens must be protected and rotated.
 
 ---
 
-## Secret management
+## Secret Management
 
-```
+Secrets must never be included directly in source code.
+
+```text
 ✗ NEVER in source code
-✗ NEVER in committed .env
-✗ NEVER in logs
+✗ NEVER in committed .env files
+✗ NEVER in GitHub repositories
+✗ NEVER in application logs
 ✗ NEVER in client error messages
-✓ Environment variables (injected by the orchestrator)
-✓ Vault (HashiCorp Vault, AWS Secrets Manager, etc.)
-✓ Kubernetes Secrets (encrypted with KMS)
+
+✓ Environment variables
+✓ Secure secret management systems
+✓ Protected deployment configuration
+✓ Kubernetes Secrets when applicable
 ```
 
-**Secret rotation:**
-- API keys: every 90 days
-- TLS certificates: 60 days before expiration
-- DB passwords: every 6 months or immediately if compromise is suspected
+### Secret Rotation
+
+The team must establish a rotation process for:
+
+* API keys.
+* Database credentials.
+* JWT signing secrets or keys.
+* TLS certificates.
+* External service credentials.
+
+If a secret is suspected to be compromised, it must be changed immediately.
 
 ---
 
-## Input validation and sanitization
+## Input Validation and Sanitization
 
-### General rules
+### General Rules
 
-1. **Never trust user input.** Validate at the edge (controller) before processing.
-2. **Whitelist, not blacklist.** Define what is allowed, not only what is prohibited.
-3. **Reject early.** If input is invalid, respond 400 and do not process further.
+1. **Never trust user input.** All data received from users must be validated.
+2. **Validate at the application boundary.** Controllers or API endpoints must validate input before processing.
+3. **Whitelist allowed values.** Only valid values and formats should be accepted.
+4. **Reject invalid requests early.** Invalid data should return an appropriate `400 Bad Request` response.
+5. **Sanitize data before displaying user-generated content.**
 
-### SQL Injection — Prevention
+### SQL Injection Prevention
 
 ```typescript
 // ✗ VULNERABLE
-const result = await db.query(`SELECT * FROM users WHERE email = '${userInput}'`);
+const result = await db.query(
+  `SELECT * FROM agencies WHERE name = '${userInput}'`
+);
 
-// ✓ SAFE — always use prepared parameters
-const result = await db.query('SELECT * FROM users WHERE email = $1', [userInput]);
+// ✓ SAFE — use prepared parameters
+const result = await db.query(
+  'SELECT * FROM agencies WHERE name = $1',
+  [userInput]
+);
 ```
 
-### XSS — Prevention
+### XSS Prevention
 
 ```typescript
-// ✗ VULNERABLE — rendering HTML without escaping
+// ✗ VULNERABLE
 element.innerHTML = userProvidedContent;
 
-// ✓ SAFE — use textContent or sanitize
+// ✓ SAFE
 element.textContent = userProvidedContent;
-// or with library: DOMPurify.sanitize(userProvidedContent)
 ```
 
-### Validation with Zod / Joi
+If HTML content must be accepted, it must be sanitized using an approved security library.
 
-```typescript
-// Explicit validation schema in the controller
-const CreateOrderSchema = z.object({
-  clientId: z.string().uuid(),
-  items: z.array(z.object({
-    productId: z.string().uuid(),
-    quantity: z.number().int().positive().max(1000),
-    price: z.object({
-      amount: z.number().positive(),
-      currency: z.enum(['COP', 'USD']),
-    }),
-  })).min(1).max(50),
-});
-```
+### Validation Examples
+
+The following data must be validated before processing:
+
+* Agency information.
+* RNT information.
+* Tourist plan data.
+* Prices and rates.
+* Dates and availability.
+* Reservation information.
+* Reviews and comments.
+* Contact forms.
+* User credentials.
 
 ---
 
-## OWASP Top 10 — Review checklist
+## Password Security
 
-| Vulnerability | Implemented control |
-|---------------|-------------------|
-| A01: Broken Access Control | RBAC + permission validation in each service |
-| A02: Cryptographic Failures | TLS 1.2+, bcrypt for passwords, secrets in vault |
-| A03: Injection | Prepared parameters in SQL, schema validation |
-| A04: Insecure Design | Threat modeling in design, Security review |
-| A05: Security Misconfiguration | IaC for configuration, review of defaults |
-| A06: Vulnerable Components | Dependabot / Snyk for automatic updates |
-| A07: Authentication Failures | JWT with rotation, brute-force protection |
-| A08: Software Integrity Failures | Verify dependency checksums, SBOM |
-| A09: Logging Failures | Logs without PII, centralized, with alerts |
-| A10: SSRF | Whitelist of external URLs, do not follow redirects automatically |
+Passwords must:
+
+* Never be stored in plain text.
+* Be stored using a strong password hashing algorithm such as bcrypt or Argon2.
+* Never appear in logs.
+* Never be returned through API responses.
+* Be transmitted only through HTTPS.
+* Be protected against brute-force login attempts.
 
 ---
 
-## Audit and security logs
+## OWASP Top 10 — Review Checklist
 
-### Events that are ALWAYS recorded
+| Vulnerability                    | Implemented control                                |
+| -------------------------------- | -------------------------------------------------- |
+| A01: Broken Access Control       | RBAC and permission validation                     |
+| A02: Cryptographic Failures      | HTTPS/TLS and secure password hashing              |
+| A03: Injection                   | Prepared SQL parameters and input validation       |
+| A04: Insecure Design             | Security considered during requirements and design |
+| A05: Security Misconfiguration   | Secure configuration and environment variables     |
+| A06: Vulnerable Components       | Dependency updates and vulnerability reviews       |
+| A07: Authentication Failures     | JWT, password protection and brute-force controls  |
+| A08: Software Integrity Failures | Dependency verification and controlled deployments |
+| A09: Logging Failures            | Security events and controlled logging             |
+| A10: SSRF                        | Validation and restriction of external URLs        |
+
+---
+
+## Audit and Security Logs
+
+Security-relevant actions must be recorded for auditing and incident investigation.
+
+### Events that should be recorded
 
 ```typescript
-// Security events — store in a separate log, with retention > 1 year
 const SECURITY_EVENTS = [
   'auth.login.success',
   'auth.login.failure',
-  'auth.login.brute_force_detected',
   'auth.password.changed',
   'auth.token.revoked',
   'auth.unauthorized_access_attempt',
-  'data.pii.accessed',
+  'agency.rnt.verification',
   'admin.role.changed',
-  'admin.user.deleted',
+  'reservation.unauthorized_access',
+  'review.moderated'
 ];
 ```
 
-**Required fields in security logs:**
-- `userId` (or `ANONYMOUS` if not authenticated)
-- `sourceIp`
-- `action`
-- `resource`
-- `result` (SUCCESS / FAILURE)
-- `timestamp`
+### Required Fields
+
+Security logs should contain:
+
+* `userId` or `ANONYMOUS`.
+* `sourceIp`, when available and appropriate.
+* `action`.
+* `resource`.
+* `result` (`SUCCESS` / `FAILURE`).
+* `timestamp`.
+
+Logs must not contain:
+
+* Passwords.
+* JWT tokens.
+* Card information.
+* Unnecessary sensitive personal information.
 
 ---
 
-## Vulnerability process
+## Vulnerability Process
 
-### What to do if you find a vulnerability
+### What to Do if a Vulnerability Is Found
 
-1. **Do not commit it to the public repo** or discuss it in open channels
-2. Immediately notify the Tech Lead via a private channel
-3. Create a private issue or a restricted repository issue
-4. Severity is assigned (CVSS score or internal classification)
-5. Remediated in the current sprint if critical, in the next sprint if high
+1. Do not publish the vulnerability in the public repository.
+2. Notify the Tech Lead or responsible technical person through a private channel.
+3. Document the vulnerability in a restricted issue when possible.
+4. Evaluate its severity and potential impact.
+5. Define and implement the remediation.
+6. Verify that the vulnerability has been resolved.
+7. Document the solution when necessary.
 
-### Remediation SLAs
+### Remediation Priority
 
-| Severity | Remediation time |
-|----------|----------------|
-| Critical (CVSS 9-10) | 24 hours |
-| High (CVSS 7-8.9) | 1 week |
-| Medium (CVSS 4-6.9) | 1 month |
-| Low (CVSS < 4) | Next security review |
+| Severity | Target remediation                    |
+| -------- | ------------------------------------- |
+| Critical | Immediate attention                   |
+| High     | Current sprint or as soon as possible |
+| Medium   | Planned in the next available sprint  |
+| Low      | Planned during a security review      |
+
+> Exact remediation times may be established by the team according to project maturity and available infrastructure.
+
+---
+
+## Data Protection
+
+Huila Travel Expedition handles user and agency information that must be protected against unauthorized access or modification.
+
+Security controls must be applied to:
+
+* User accounts.
+* Agency information.
+* RNT information.
+* Tourist plans.
+* Reservations.
+* Reviews and ratings.
+* Contact information.
+* Authentication data.
+
+Access to personal information must follow the user's role and the minimum permissions required.
+
+---
+
+## Reservation Security
+
+Because the SRS requires reservation management and inventory control, the system must protect against:
+
+* Unauthorized reservation access.
+* Duplicate reservations.
+* Inventory inconsistencies.
+* Concurrent reservation conflicts.
+* Modification of reservations by unauthorized users.
+
+Reservation operations must verify:
+
+```text
+Authenticated user
+        ↓
+User role
+        ↓
+Resource ownership or permission
+        ↓
+Availability
+        ↓
+Operation
+```
+
+Database transactions and concurrency controls must be used where necessary to reduce overbooking and inconsistent reservation data.
+
+---
+
+## External Services
+
+Huila Travel Expedition may interact with external services for technical or future functionality.
+
+External integrations must:
+
+* Use secure HTTPS communication.
+* Store credentials securely.
+* Validate external responses.
+* Avoid exposing secrets to clients.
+* Apply timeouts and appropriate error handling.
+* Log relevant security events without exposing sensitive data.
+
+> Online payment management is outside the initial project scope according to the SRS. Therefore, payment credentials or payment processing must not be implemented as part of the current system unless the project scope is formally updated.
+
+---
+
+## Security Testing
+
+Security must be considered during development and testing.
+
+The team should verify:
+
+* Authentication.
+* Authorization and RBAC.
+* Input validation.
+* SQL injection prevention.
+* XSS prevention.
+* Password protection.
+* Session/token expiration.
+* Unauthorized access attempts.
+* Reservation ownership and permissions.
+* Dependency vulnerabilities.
+* Secure configuration.
+
+Security-related defects must be corrected according to their severity before production deployment.
 
 ---
 
 ## Correlations
 
-- Security non-functional requirements → `04-requirements/non-functional.md`
-- ADR on authentication → `05-architecture/decisions/`
-- Security event observability → `13-operations/observability.md`
-- RBAC implemented in → `09-microservices/services/XX-auth-service/`
+* Security non-functional requirements → `04-requirements/non-functional.md`
+* Authentication decisions → `05-architecture/decisions/`
+* Data models → `06-data/models.md`
+* API contracts → `07-api/contracts/openapi/`
+* Authentication and authorization services → `09-microservices/services/`
+* Security event observability → `13-operations/observability.md`
+* General documentation rules → `00-governance/documentation-rules.md`
+
+---
+
+## Security Compliance Checklist
+
+Before merging security-sensitive changes, verify:
+
+* [ ] Authentication is required for protected resources.
+* [ ] RBAC is implemented according to the SRS roles.
+* [ ] Users cannot access unauthorized resources.
+* [ ] Passwords are securely hashed.
+* [ ] JWTs do not contain passwords or unnecessary sensitive information.
+* [ ] HTTPS is used in non-local environments.
+* [ ] Secrets are not committed to the repository.
+* [ ] User input is validated.
+* [ ] SQL injection protections are implemented.
+* [ ] XSS protections are implemented.
+* [ ] Security events are logged without exposing sensitive information.
+* [ ] Dependencies are reviewed for known vulnerabilities.
+* [ ] Reservation operations protect against unauthorized access and conflicts.
+* [ ] External integrations use secure communication.
+* [ ] Online payment functionality is not introduced into the initial scope.
+* [ ] Security changes are consistent with the SRS.
+* [ ] Documentation is written in English.
+* [ ] Changes follow the project's Git and Pull Request conventions.
+
+---
+
+## Source of Truth
+
+The **Huila Travel Expedition SRS** is the primary source for defining the system's roles, functional requirements, scope restrictions, and security-related technical requirements.
+
+This security policy defines mandatory development and operational practices but must not contradict the approved SRS.
+
+When a new security requirement or technology is introduced, the team must review its impact on the architecture, requirements, and documentation before implementation.
