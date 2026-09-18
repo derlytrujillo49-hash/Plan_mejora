@@ -1,27 +1,37 @@
 # Design Patterns and Microservices Guide
 
-> This document is the project's pattern catalog.
-> For each pattern: when to use it, when NOT to, and an implementation example.
-> Patterns are not recipes — they are tools. Use them when the problem requires it.
+> This document is the pattern catalog for Huila Travel Expedition.
+> For each pattern: when to use it, when NOT to use it, and how it can apply to the project.
+>
+> Patterns are not recipes — they are tools. They should be adopted only when the project has a real problem that requires them.
 
-> **Stack note:** Descriptions and diagrams are technology-agnostic.
-> Illustrative code snippets use pseudo-TypeScript as a reference language
-> for its proximity to pseudocode syntax. To see the concrete implementation in your stack:
-> [`_stacks/node-typescript.md`](../_stacks/node-typescript.md) ·
-> [`_stacks/java-spring.md`](../_stacks/java-spring.md) ·
-> [`_stacks/python-fastapi.md`](../_stacks/python-fastapi.md) ·
-> [`_stacks/go.md`](../_stacks/go.md)
+---
+
+## Stack note
+
+The Huila Travel Expedition SRS proposes:
+
+* Laravel 10+
+* PHP 8.2+
+* MySQL 8.0
+* PostgreSQL as an alternative
+* Redis for caching
+* Bootstrap or Tailwind for the interface
+
+The patterns described in this document are mostly technology-agnostic. Concrete implementation decisions must be documented through the corresponding ADRs.
 
 ---
 
 ## Index
 
-**Design patterns (GoF and SOLID)**
+**Design patterns**
+
 1. [Creational patterns](#creational)
 2. [Structural patterns](#structural)
 3. [Behavioral patterns](#behavioral)
 
 **Microservices patterns**
+
 4. [System decomposition](#decomposition)
 5. [Inter-service communication](#communication)
 6. [Resilience](#resilience)
@@ -30,535 +40,809 @@
 
 ---
 
-## Design patterns (GoF) {#creational}
+# Design patterns (GoF and SOLID)
 
-### 1. Factory Method
+<a name="creational"></a>
 
-**Problem:** You want to create objects without exposing the creation logic or coupling code to the concrete type.
+## 1. Factory Method
+
+**Problem:**
+An object must be created without exposing all of its creation logic to the rest of the application.
 
 **When to use it:**
-- When the exact type of object to create is not known until runtime
-- When creation has complex logic (validations, configuration)
 
-**Domain example:**
+* When different types of domain objects may need to be created.
+* When creation requires validations or business rules.
+* When object creation should remain inside the domain.
 
-```typescript
-// Factory Method — inside the Aggregate Root
-class Order {
-  // Instead of new Order(...), we use a factory method
-  static create(customerId: CustomerId, items: OrderItem[]): Order {
-    if (items.length === 0) throw new DomainException('INV-001');
-    return new Order(OrderId.new(), customerId, items, OrderStatus.PENDING);
-  }
+**Possible Huila Travel Expedition example:**
 
-  static reconstitute(data: OrderData): Order {
-    // To reconstruct from the database
-    return new Order(new OrderId(data.id), new CustomerId(data.customerId), ...);
-  }
+A factory could be used to create different types of tourist plans when the creation process has different business rules.
+
+```php
+class TouristPlanFactory
+{
+    public static function create(array $data): TouristPlan
+    {
+        // Validate required information
+        // Apply creation rules
+        return new TouristPlan($data);
+    }
 }
 ```
 
+**When NOT to use it:**
+
+* When object creation is simple.
+* When introducing a factory would add unnecessary complexity.
+
 ---
 
-### 2. Builder
+## 2. Builder
 
-**Problem:** An object has many optional parameters and construction becomes unreadable.
+**Problem:**
+An object contains many optional attributes and direct construction becomes difficult to read.
 
-**When to use it:** Complex configuration objects, test data builders.
+**When to use it:**
 
-```typescript
-// Builder — especially useful for tests
-const order = new OrderBuilder()
-  .withCustomer('customer-id-123')
-  .withItem(product1, quantity: 2)
-  .withItem(product2, quantity: 1)
-  .withAddress('5th Street #10-20, Neiva')
-  .inStatus(OrderStatus.CONFIRMED)
-  .build();
+* Complex tourist plans.
+* Test data creation.
+* Objects with many optional properties.
+
+**Example:**
+
+```php
+$plan = TouristPlanBuilder::create()
+    ->withName('Tour San Agustín')
+    ->withDuration(3)
+    ->withPrice(450000)
+    ->withMunicipality('San Agustín')
+    ->build();
 ```
 
----
+> This is an illustrative example. The SRS does not require a Builder implementation.
 
-### 3. Singleton (with caution)
+**When NOT to use it:**
 
-**Problem:** A class must have exactly one instance.
-
-**When to use it:** DB connections, configuration registries.
-
-**WARNING:** Singleton makes testing difficult. Prefer dependency injection.
-
-```typescript
-// ✓ Better: Singleton managed by the DI container, not by the class itself
-// In the container (NestJS, tsyringe, etc.):
-container.registerSingleton(DatabaseConnection, DatabaseConnectionImpl);
-```
+* When the object has only a few simple attributes.
+* When a normal constructor is easier to understand.
 
 ---
 
-### 4. Adapter (Structural pattern) {#structural}
+## 3. Singleton (with caution)
 
-**Problem:** You want to use an existing class but its interface does not match the one you need.
+**Problem:**
+A component requires a single shared instance.
 
-**When to use it:** Integration with external APIs, third-party libraries.
+**Possible uses:**
 
-```typescript
-// The domain defines the interface it needs
-interface PaymentGatewayPort {
-  charge(amount: Money, card: TokenData): Promise<ChargeResult>;
-}
+* Configuration management.
+* Specific infrastructure resources.
 
-// The adapter translates to the external API
-class StripePaymentAdapter implements PaymentGatewayPort {
-  constructor(private stripe: Stripe) {}
+**Warning:**
+Singletons can make testing and dependency management more difficult.
 
-  async charge(amount: Money, card: TokenData): Promise<ChargeResult> {
-    // Translate domain model → Stripe model
-    const charge = await this.stripe.charges.create({
-      amount: amount.toCents(),
-      currency: amount.currency,
-      source: card.token,
-    });
-    // Translate Stripe result → domain model
-    return new ChargeResult(charge.id, charge.status === 'succeeded');
-  }
+For Huila Travel Expedition, **dependency injection is preferred** instead of manually implementing Singleton classes.
+
+```php
+class Configuration
+{
+    // Prefer framework/container-managed instances
 }
 ```
 
+**When NOT to use it:**
+
+* For ordinary domain entities.
+* When dependency injection can solve the same problem.
+* When the singleton would create hidden global state.
+
 ---
 
-### 5. Decorator
+<a name="structural"></a>
 
-**Problem:** You want to add behavior to an object without modifying it or inheriting from it.
+## 4. Adapter
 
-**When to use it:** Logging, caching, validation, rate limiting around use cases.
+**Problem:**
+The application needs to use an external component whose interface is different from the interface required by the domain.
 
-```typescript
-// Cache decorator around the repository
-class CachedOrderRepository implements OrderRepositoryPort {
-  constructor(
-    private readonly repo: OrderRepositoryPort,
-    private readonly cache: CachePort,
-  ) {}
+**When to use it:**
 
-  async findById(id: OrderId): Promise<Order | null> {
-    const cached = await this.cache.get(`order:${id.value}`);
-    if (cached) return OrderMapper.toDomain(cached);
+* External email providers.
+* Future payment gateways.
+* External APIs.
+* Infrastructure implementations.
 
-    const order = await this.repo.findById(id);
-    if (order) await this.cache.set(`order:${id.value}`, order, TTL_5_MINUTES);
-    return order;
-  }
+**Huila Travel Expedition example:**
+
+The application can define an email port:
+
+```php
+interface NotificationPort
+{
+    public function sendConfirmation(
+        string $email,
+        string $message
+    ): void;
 }
 ```
 
----
+An external email provider can then implement the adapter:
 
-### 6. Observer / Internal Event Bus {#behavioral}
-
-**Problem:** An object needs to notify others without knowing them directly.
-
-**When to use it:** To publish domain events after persisting the aggregate.
-
-```typescript
-// The Aggregate accumulates events — the UseCase publishes them
-class Order {
-  private readonly _events: DomainEvent[] = [];
-
-  confirm(): void {
-    // ... business logic ...
-    this._events.push(new OrderConfirmed(this.id));
-  }
-
-  get domainEvents(): DomainEvent[] {
-    return [...this._events];
-  }
-
-  clearEvents(): void {
-    this._events.length = 0;
-  }
+```php
+class EmailServiceAdapter implements NotificationPort
+{
+    public function sendConfirmation(
+        string $email,
+        string $message
+    ): void {
+        // Translate application data
+        // into the external provider format.
+    }
 }
 ```
 
----
+This keeps the domain independent from the concrete email provider.
 
-### 7. Strategy
+**When NOT to use it:**
 
-**Problem:** You want to swap algorithms at runtime.
-
-**When to use it:** Discount strategies, calculation algorithms, payment methods.
-
-```typescript
-interface DiscountStrategy {
-  calculate(subtotal: Money, user: User): Money;
-}
-
-class StudentDiscount implements DiscountStrategy {
-  calculate(subtotal: Money, user: User): Money {
-    return subtotal.multiply(0.15); // 15% discount
-  }
-}
-
-class CorporateDiscount implements DiscountStrategy {
-  calculate(subtotal: Money, user: User): Money {
-    return subtotal.multiply(0.20); // 20% discount
-  }
-}
-```
+* When there is no external interface to adapt.
+* When the abstraction adds complexity without solving a real integration problem.
 
 ---
 
-### 8. Template Method
+## 5. Decorator
 
-**Problem:** An algorithm has a fixed structure but some steps vary.
+**Problem:**
+Additional behavior is required without modifying the original object.
 
-**When to use it:** Process flows with variations (export to CSV, Excel, PDF).
+**Possible Huila Travel Expedition uses:**
 
-```typescript
-abstract class ReportExporter {
-  // Template Method — fixed structure
-  async export(data: ReportData): Promise<Buffer> {
-    const validated = await this.validate(data);
-    const transformed = await this.transform(validated);
-    const buffer = await this.generate(transformed);
-    await this.recordExport(data.userId);
-    return buffer;
-  }
+* Logging.
+* Caching.
+* Validation.
+* Performance measurement.
 
-  protected abstract transform(data: ReportData): Promise<TransformedData>;
-  protected abstract generate(data: TransformedData): Promise<Buffer>;
-  
-  // Steps with default implementation (can be overridden)
-  protected async validate(data: ReportData): Promise<ReportData> { return data; }
-  protected async recordExport(userId: UserId): Promise<void> {}
+Example:
+
+```php
+class CachedTouristPlanRepository
+{
+    public function __construct(
+        private TouristPlanRepository $repository,
+        private CacheService $cache
+    ) {}
+
+    public function findById(string $id)
+    {
+        // Check cache first.
+        // If unavailable, query repository.
+    }
 }
 ```
 
----
+The SRS proposes Redis for caching, so a cache decorator could be considered if caching becomes necessary.
 
-## Microservices Patterns
+**When NOT to use it:**
 
-### Decomposition {#decomposition}
-
-#### API Gateway
-
-**Problem:** Clients need to call multiple services to get a response.
-
-```
-                    ┌─────────────────┐
-Mobile ──────────▶  │                 │ ──▶ [Service A]
-Web ────────────▶  │   API Gateway   │ ──▶ [Service B]
-IoT ────────────▶  │                 │ ──▶ [Service C]
-                    └─────────────────┘
-                         Does:
-                    - Routing
-                    - Auth/AuthZ
-                    - Rate limiting
-                    - SSL termination
-                    - Request aggregation
-```
-
-**When to use it:** Always, in microservices architectures it is essential.
-
-**Tools:** Kong, AWS API Gateway, NGINX, Traefik, Spring Cloud Gateway.
+* When the additional behavior is simple enough to be handled directly.
+* When multiple decorators make the code difficult to understand.
 
 ---
 
-#### Backend for Frontend (BFF)
+<a name="behavioral"></a>
 
-**Problem:** Mobile and web need data in very different formats but share the same API.
+## 6. Observer / Internal Event Bus
 
+**Problem:**
+An operation needs to notify other components without creating direct dependencies between them.
+
+**Possible Huila Travel Expedition uses:**
+
+* Reservation confirmation.
+* Review submission.
+* Agency registration.
+* Reservation approval.
+
+Conceptually:
+
+```text
+Reservation approved
+        ↓
+Domain/Application Event
+        ↓
+Notification handler
+        ↓
+Confirmation email
 ```
-Mobile ──▶ [BFF Mobile]  ──▶ Internal services
-Web    ──▶ [BFF Web]     ──▶ Internal services
-Alexa  ──▶ [BFF Voice]   ──▶ Internal services
+
+Example:
+
+```php
+class ReservationApproved
+{
+    public function __construct(
+        public string $reservationId
+    ) {}
+}
 ```
 
-**When to use it:** When clients have very different needs. Use sparingly — each BFF is an API to maintain.
+**When NOT to use it:**
+
+* When the operation is simple and direct communication is sufficient.
+* When events would make the flow unnecessarily difficult to follow.
 
 ---
 
-#### Strangler Fig (Incremental migration)
+## 7. Strategy
 
-**Problem:** You need to migrate a monolith to microservices without rewriting it all at once.
+**Problem:**
+The system needs to apply different algorithms or rules depending on a specific situation.
 
+**Possible Huila Travel Expedition uses:**
+
+* Different pricing rules.
+* Different tourism classifications.
+* Different report formats.
+* Different notification mechanisms.
+
+Example:
+
+```php
+interface PricingStrategy
+{
+    public function calculate(float $basePrice): float;
+}
+
+class StandardPricing implements PricingStrategy
+{
+    public function calculate(float $basePrice): float
+    {
+        return $basePrice;
+    }
+}
+
+class SpecialRatePricing implements PricingStrategy
+{
+    public function calculate(float $basePrice): float
+    {
+        return $basePrice;
+    }
+}
 ```
-Phase 1:  Client → Monolith (100% traffic)
-Phase 2:  Client → API Gateway → Monolith (70%) + New Service (30%)
-Phase 3:  Client → API Gateway → New Service (100%) — monolith retired
-```
 
-**How:** The API Gateway gradually routes traffic to the new service while the monolith keeps running.
+> The SRS requires differentiated rates but does not define the exact pricing algorithms. Therefore, this is only a possible design approach.
+
+**When NOT to use it:**
+
+* When there is only one algorithm.
+* When creating multiple strategies only for theoretical flexibility.
 
 ---
 
-### Inter-service communication {#communication}
+## 8. Template Method
 
-#### Synchronous: REST / gRPC
+**Problem:**
+Several processes follow the same general structure but have different steps.
 
-| Aspect | REST | gRPC |
-|--------|------|------|
-| Protocol | HTTP/1.1 or HTTP/2 | HTTP/2 |
-| Serialization | JSON (human-readable) | Protocol Buffers (efficient) |
-| Typing | Manual with OpenAPI | Automatic with .proto |
-| Streaming | Not native | Yes (unidirectional and bidirectional) |
-| Recommended use | Public APIs, external communication | Internal service-to-service communication |
+**Possible use:**
+
+Generating different types of reports:
+
+```text
+Validate data
+      ↓
+Transform data
+      ↓
+Generate report
+      ↓
+Register export
+```
+
+The SRS requires PDF reports for administrators.
+
+```php
+abstract class ReportGenerator
+{
+    public function generate(array $data)
+    {
+        $validated = $this->validate($data);
+        $transformed = $this->transform($validated);
+
+        return $this->createReport($transformed);
+    }
+
+    protected function validate(array $data)
+    {
+        return $data;
+    }
+
+    abstract protected function transform(array $data);
+
+    abstract protected function createReport(array $data);
+}
+```
+
+**When NOT to use it:**
+
+* When reports do not share a common process.
+* When composition or separate services are simpler.
+
+---
+
+# Microservices Patterns
+
+<a name="decomposition"></a>
+
+## Decomposition
+
+### API Gateway
+
+**Problem:**
+Clients must communicate with several independent services.
+
+```text
+                  ┌──────────────────┐
+Web Application ─▶│   API Gateway    │
+                  └────────┬─────────┘
+                           │
+                ┌──────────┼──────────┐
+                ↓          ↓          ↓
+             Agency     Plans     Reservation
+             Service    Service      Service
+```
+
+**Current project status:** Not adopted.
+
+Huila Travel Expedition is initially documented as a **Modular Monolith + Hexagonal Architecture**. The SRS does not define independent deployable microservices or an API Gateway.
+
+**When to use it:**
+
+* When the system has multiple independent services.
+* When routing, authentication or aggregation must be centralized.
+
+**When NOT to use it:**
+
+* When the system is a modular monolith.
+* When there are no independent services requiring centralized routing.
+
+---
+
+### Backend for Frontend (BFF)
+
+**Problem:**
+Different clients require significantly different APIs.
+
+```text
+Web ──▶ BFF Web ──▶ Internal Services
+
+Mobile ──▶ BFF Mobile ──▶ Internal Services
+```
+
+**Current project status:** Not adopted.
+
+The SRS defines a responsive web platform and does not define separate mobile and web APIs.
+
+**When to use it:**
+
+* When different clients have substantially different data requirements.
+
+**When NOT to use it:**
+
+* When there is only one main client.
+* When a standard API can serve the clients adequately.
+
+---
+
+### Strangler Fig
+
+**Problem:**
+A monolithic system needs to be gradually migrated to independent services.
+
+```text
+Phase 1:
+Client → Monolith
+
+Phase 2:
+Client → Gateway → Monolith + New Service
+
+Phase 3:
+Client → Gateway → New Services
+```
+
+**Current project status:** Future option.
+
+This pattern could be considered if Huila Travel Expedition grows and specific modules need to become independent services.
+
+---
+
+<a name="communication"></a>
+
+# Inter-service communication
+
+## Synchronous: REST / gRPC
+
+### REST
+
+REST is appropriate for HTTP APIs used by the web application.
+
+Possible communication:
+
+```text
+Web Application
+       ↓ HTTPS
+Application API
+       ↓
+Huila Travel Expedition modules
+```
+
+**Current project status:** REST/HTTP is a possible API approach, but the final API architecture is not yet defined in the SRS.
+
+### gRPC
+
+gRPC could be considered if independent internal services are introduced in the future.
+
+**Current project status:** Not adopted.
 
 **When to use synchronous communication:**
-- When you need the response immediately (queries, UI)
-- Low-latency operations the user is waiting for
+
+* When the client needs an immediate response.
+* For searches and queries.
+* For reservation operations requiring an immediate result.
 
 ---
 
-#### Asynchronous: Message Broker (Kafka / RabbitMQ)
+## Asynchronous: Message Broker
 
-```
-[Service A] ──publishes──▶ [Topic/Queue] ──consumes──▶ [Service B]
-                                                        [Service C]
+Examples include Kafka and RabbitMQ.
+
+```text
+[Module A]
+    │
+    │ Event
+    ▼
+[Message Broker]
+    │
+    ▼
+[Module B]
 ```
 
-**When to use asynchronous communication:**
-- When the operation does not require an immediate response
-- When you want to decouple producers from consumers
-- For background processing (emails, notifications, reports)
-- To guarantee delivery (the broker's DB is durable)
+**Current project status:** Not adopted.
+
+The SRS does not specify Kafka, RabbitMQ or another message broker.
+
+Possible future use:
+
+* Sending notification emails asynchronously.
+* Processing reports.
+* Integrating independently deployed services.
+
+**When NOT to use it:**
+
+* When the operation requires a simple immediate response.
+* When introducing a broker only adds infrastructure complexity.
 
 ---
 
-### Resilience {#resilience}
+<a name="resilience"></a>
 
-#### Circuit Breaker
+# Resilience
 
-**Problem:** A slow or failing service causes yours to fail too (failure cascade).
+## Circuit Breaker
 
+**Problem:**
+A failing external service can cause repeated failures in the application.
+
+```text
+Normal:
+
+Application → External Service
+                 ↓
+              Response
+
+
+Failure:
+
+Application → Circuit Breaker → External Service
+                    ↓
+                 Fallback
 ```
-CLOSED state (normal):
-  Calls pass through → if N consecutive failures → switch to OPEN
 
-OPEN state (circuit breaker):
-  Calls blocked immediately (fail fast) → after T seconds → HALF-OPEN
+**Current project status:** Not adopted.
 
-HALF-OPEN state (testing):
-  Allows 1 call → if it fails: back to OPEN | if it passes: back to CLOSED
-```
+It could be considered if Huila Travel Expedition depends on several external services.
 
-```typescript
-// With opossum or resilience4j
-const circuit = new CircuitBreaker(externalService.call, {
-  timeout: 3000,                    // Timeout per call
-  errorThresholdPercentage: 50,     // % of errors to open
-  resetTimeout: 30000,              // Time in OPEN before trying HALF-OPEN
-});
+**When to use it:**
 
-circuit.fallback(() => ({ cached: true, data: lastReliableCache }));
-```
+* External services may become unavailable.
+* A slow external service could affect the application.
+* A fallback is possible.
+
+**When NOT to use it:**
+
+* For operations completely internal to the same application.
+* When there is no external dependency requiring protection.
 
 ---
 
-#### Retry with Exponential Backoff
+## Retry with Exponential Backoff
 
-**Problem:** Transient failures (unstable network, service restarting).
+**Problem:**
+A temporary network or external-service failure occurs.
 
-```typescript
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  options = { attempts: 3, backoffBase: 1000 }
-): Promise<T> {
-  for (let attempt = 1; attempt <= options.attempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (attempt === options.attempts) throw err;
-      const delay = options.backoffBase * Math.pow(2, attempt - 1); // 1s, 2s, 4s
-      await sleep(delay + Math.random() * 100); // Jitter to avoid thundering herd
-    }
-  }
-}
+Example concept:
+
+```text
+Attempt 1 → fail
+    ↓
+wait
+Attempt 2 → fail
+    ↓
+wait longer
+Attempt 3 → success/fail
 ```
+
+**Possible use:** External email notifications.
+
+**Current project status:** Not formally adopted.
+
+Retries must be used carefully to avoid sending duplicate notifications or creating excessive traffic.
 
 ---
 
-### Data and consistency {#data}
+<a name="data"></a>
 
-#### Database per Service
+# Data and consistency
 
-**Rule:** Each microservice has its own database. No service directly accesses another service's database.
+## Database per Service
 
+**Rule:**
+Each independent microservice has its own database.
+
+```text
+Service A → Database A
+
+Service B → Database B
 ```
-✓ Correct:
-  Service A → Database A
-  Service B → Database B
 
-✗ Incorrect:
-  Service A → Database B (direct JOIN)
-```
+**Current project status:** No.
 
-**How do I share data then?** With APIs or events, never with direct SQL.
+Huila Travel Expedition is initially a modular monolith, and the SRS proposes MySQL as the primary database.
+
+Therefore, a database-per-service strategy is not required for the initial architecture.
+
+If the system is later decomposed into microservices, this decision must be reviewed through an ADR.
 
 ---
 
-#### Saga (Distributed transactions)
+## ACID Transactions
 
-**Problem:** A business transaction spans multiple services and you cannot use a distributed ACID transaction.
+**Problem:**
+Several database operations must be completed consistently as one transaction.
 
+**Current project status:** Adopted for reservation integrity.
+
+The SRS specifically requires ACID transactions and locking mechanisms to prevent overbooking.
+
+Conceptual flow:
+
+```text
+BEGIN TRANSACTION
+      ↓
+Check availability
+      ↓
+Lock availability
+      ↓
+Create reservation
+      ↓
+Update availability
+      ↓
+COMMIT
 ```
-Choreographed Saga (via events):
 
-  [Orders]                  [Inventory]            [Payments]
-     │ OrderCreated              │                     │
-     │ ─────────────────────▶   │                     │
-     │                     StockReserved              │
-     │ ◀─────────────────────   │                     │
-     │ OrderStockConfirmed                            │
-     │ ─────────────────────────────────────────▶    │
-     │                                          PaymentApproved
-     │ ◀─────────────────────────────────────────    │
+If an operation fails:
+
+```text
+ROLLBACK
 ```
 
-**Compensations:** If a step fails, execute compensating transactions in reverse order.
-
-```
-Step 1: Reserve stock         → Compensation: Release stock
-Step 2: Debit payment         → Compensation: Refund
-Step 3: Confirm order         → Compensation: Cancel order
-```
+This is particularly important for simultaneous reservation requests.
 
 ---
 
-#### CQRS (Command Query Responsibility Segregation)
+## Saga
 
-**Problem:** The logic for writing data is very different from the logic for reading it.
-A single model forces suboptimal compromises for both.
+**Problem:**
+A business transaction spans several independent services and cannot use a single ACID transaction.
 
-```
-Write (Commands):                        Read (Queries):
-  POST /orders                             GET /orders?customerId=X
-       │                                         │
-       ▼                                         ▼
-  [Command Handler]                       [Query Handler]
-       │                                         │
-       ▼                                         ▼
-  [Aggregate]                            [Read Model / Projection]
-       │                                 (denormalized, optimized for reading)
-       ▼
-  [Event Store / Write DB]
-       │
-       ▼ (updates the read side via events)
-  [Read DB]
+**Current project status:** Not adopted.
+
+The current architecture can use a local ACID transaction because the initial system is a modular monolith.
+
+```text
+Reservation
+     ↓
+Availability
+     ↓
+Database Transaction
 ```
 
-**When to use it:** When read volume is much higher than write volume, or when queries are very complex to perform on the write model.
+A Saga should only be considered if the reservation process is later distributed across independent services.
 
-**Caution:** Increases complexity. Not always worth it.
+**When NOT to use it:**
+
+* When the transaction fits inside one service or application.
+* When a simple ACID transaction is sufficient.
 
 ---
 
-#### Outbox Pattern (Transactional)
+## CQRS
 
-**Problem:** You need to guarantee that when you save to the database, you also publish the event — without risk of publishing it twice or not publishing it if there is a failure.
+**Problem:**
+The read model and write model have very different requirements.
 
-```
-❌ Without Outbox (may lose events):
-  BEGIN TRANSACTION
-    INSERT INTO orders ...
-  COMMIT
-  // If the system crashes here, the event is lost
-  publishEvent(OrderCreated)
+**Current project status:** Not adopted.
 
-✓ With Outbox (atomic):
-  BEGIN TRANSACTION
-    INSERT INTO orders ...
-    INSERT INTO outbox (event_type, payload, published) VALUES ('OrderCreated', '...', false)
-  COMMIT
-  // Separate process reads outbox and publishes
-  // If publishing fails, the outbox still has the event
-```
+The SRS does not require separate read and write models.
 
-```sql
--- Outbox table
-CREATE TABLE outbox (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type  VARCHAR(100) NOT NULL,
-  payload     JSONB NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT NOW(),
-  published_at TIMESTAMPTZ,
-  published   BOOLEAN DEFAULT false
-);
+A conventional application model is sufficient for the initial implementation.
 
--- Index for the Relay (process that publishes pending events)
-CREATE INDEX idx_outbox_unpublished ON outbox (created_at) WHERE published = false;
-```
+**When to use it:**
+
+* Very high read volume.
+* Complex read models.
+* Different scalability requirements for reading and writing.
+
+**When NOT to use it:**
+
+* When read and write operations are relatively simple.
+* When the additional infrastructure would not provide a clear benefit.
 
 ---
 
-#### Event Sourcing
+## Outbox Pattern
 
-**Problem:** You need full audit, reproducing system state at any point in time, or rebuilding projections.
+**Problem:**
+The application must guarantee that a database operation and an event publication are reliably coordinated.
 
+**Current project status:** Not adopted.
+
+It may become useful if Huila Travel Expedition later adopts asynchronous events and independent microservices.
+
+```text
+Transaction
+   ├── Save business data
+   └── Save event in Outbox
+              ↓
+          Event Relay
+              ↓
+        Message Broker
 ```
-Traditional:    DB stores current state → "An order is worth $150"
-Event Sourcing: DB stores events        → "OrderCreated($100) + DiscountApplied($-30) + ItemAdded($80)"
 
-To know the current state: you replay all events in order.
-```
-
-**When to use it:** Financial auditing, advanced debugging, systems where history matters.
-
-**When NOT to use it:** Most cases. It adds significant complexity. It is not the default solution.
+The pattern should not be introduced before an event-driven architecture is actually required.
 
 ---
 
-### Observability {#observability}
+## Event Sourcing
 
-#### Sidecar Pattern
+**Problem:**
+The system needs to reconstruct its state from a complete history of events.
 
-**Problem:** You want to add observability, configuration, or network capabilities to a service without modifying its code.
+**Current project status:** Not adopted.
 
+Huila Travel Expedition does not require event sourcing according to the SRS.
+
+The application can use conventional database persistence.
+
+**When NOT to use it:**
+
+* When complete event history is not a business requirement.
+* When conventional persistence is sufficient.
+* When the additional complexity is not justified.
+
+---
+
+<a name="observability"></a>
+
+# Observability
+
+## Sidecar Pattern
+
+**Problem:**
+Infrastructure capabilities such as logging, metrics or network management need to be added without modifying application code.
+
+```text
+┌─────────────────────────────┐
+│ Application                 │
+│                             │
+│ Sidecar / Infrastructure    │
+└─────────────────────────────┘
 ```
-Kubernetes Pod:
-  ┌──────────────────────────────┐
-  │  [Service A]                │
-  │  [Sidecar: Envoy/Istio]    │  ← Handles TLS, metrics, service mesh
-  │  [Sidecar: Filebeat]       │  ← Collects logs
-  └──────────────────────────────┘
-```
+
+**Current project status:** Not adopted.
+
+This pattern is mainly useful in containerized environments such as Kubernetes and is not required by the current SRS.
 
 ---
 
-## When NOT to use each pattern
+# When NOT to use each pattern
 
-| Pattern | Do not use it when... |
-|---------|----------------------|
-| CQRS | The read and write models are similar. It only adds complexity. |
-| Event Sourcing | You do not need complete history. It is hard to implement and maintain. |
-| Saga | The transaction fits in a single service. Use a simple ACID transaction. |
-| Circuit Breaker | The call is internal to the same service. The overhead is not worth it. |
-| BFF | Clients have similar needs. A standard API Gateway is sufficient. |
-
----
-
-## Patterns adopted in this project
-
-> **Fill in with your specific project's decisions.**
-> For each pattern: decide whether it is adopted, document the ADR that justifies the decision,
-> and link to the section in this document where you learned when to use it.
-
-| Pattern | Adopted? | Justification / ADR |
-|---------|---------|---------------------|
-| API Gateway | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Database per Service | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Circuit Breaker | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Saga (choreographed) | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Outbox Pattern | [Yes / No — see ADR-NNN] | [Brief reason] |
-| CQRS | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Event Sourcing | [Yes / No — see ADR-NNN] | [Brief reason] |
-| BFF | [Yes / No — see ADR-NNN] | [Brief reason] |
+| Pattern              | Do not use it when...                                                   |
+| -------------------- | ----------------------------------------------------------------------- |
+| Factory Method       | Object creation is simple and does not require abstraction.             |
+| Builder              | The object has few simple attributes.                                   |
+| Singleton            | Dependency injection can solve the same problem.                        |
+| Adapter              | There is no external interface requiring translation.                   |
+| Decorator            | The added behavior is simple and does not justify another abstraction.  |
+| Observer / Event Bus | Direct communication is simpler and easier to understand.               |
+| Strategy             | There is only one algorithm or rule.                                    |
+| Template Method      | Processes do not share a common structure.                              |
+| API Gateway          | The system is not composed of independent microservices.                |
+| BFF                  | Clients have similar requirements.                                      |
+| Circuit Breaker      | The dependency is internal and does not create cascading failures.      |
+| Saga                 | The transaction fits within a single application transaction.           |
+| CQRS                 | Read and write models are not significantly different.                  |
+| Event Sourcing       | Complete event history is not required.                                 |
+| Database per Service | The architecture is still a modular monolith.                           |
+| Outbox Pattern       | There is no asynchronous event publication requiring reliable delivery. |
+| Sidecar              | The infrastructure does not require sidecar-based deployment.           |
 
 ---
 
-## Correlations
+# Patterns adopted in this project
 
-- Hexagonal Architecture → `05-architecture/hexagonal-architecture.md`
-- ADR for pattern decisions → `05-architecture/decisions/`
-- Saga implementation → `09-microservices/services/XX/events.md`
-- Circuit Breaker runbook → `09-microservices/services/XX/runbook.md`
-- Outbox in the data model → `06-data/models.md`
+> The following decisions are based on the current Huila Travel Expedition architecture and SRS. Patterns that are not supported by the current architecture remain unadopted.
+
+| Pattern                       | Adopted? | Justification / ADR                                                                                                                               |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Factory Method                | Proposed | May be used when domain object creation requires business validation.                                                                             |
+| Builder                       | Proposed | May be used for complex objects or test data.                                                                                                     |
+| Adapter                       | Yes      | Supports separation between application ports and external/infrastructure implementations. Reference: `05-architecture/hexagonal-architecture.md` |
+| Decorator                     | Proposed | May be used for caching, logging or validation when justified.                                                                                    |
+| Observer / Internal Event Bus | Proposed | May support decoupled notification processes if required.                                                                                         |
+| Strategy                      | Proposed | May support differentiated pricing or other variable business rules.                                                                              |
+| Template Method               | Proposed | May be used for report-generation flows with shared processing steps.                                                                             |
+| API Gateway                   | No       | Initial architecture is a modular monolith.                                                                                                       |
+| Database per Service          | No       | Initial architecture uses a shared application database.                                                                                          |
+| Circuit Breaker               | No       | No microservice/external dependency architecture requiring it has been defined.                                                                   |
+| Saga (choreographed)          | No       | Reservation integrity is handled through ACID transactions and locking.                                                                           |
+| Outbox Pattern                | No       | No message broker/event-driven architecture has been adopted.                                                                                     |
+| CQRS                          | No       | The SRS does not require separate read/write models.                                                                                              |
+| Event Sourcing                | No       | Complete event-sourced history is not a current requirement.                                                                                      |
+| BFF                           | No       | The SRS defines a responsive web platform and does not require separate client-specific backends.                                                 |
+| Sidecar                       | No       | Not required by the current deployment architecture.                                                                                              |
+
+> **Important:** “Proposed” means the pattern may be useful in implementation but is not mandatory. “Yes” means it is consistent with the adopted Hexagonal Architecture. Microservices patterns marked “No” must not be implemented as if they were already architectural decisions.
+
+---
+
+# Correlations
+
+* Hexagonal Architecture → `05-architecture/hexagonal-architecture.md`
+* System Architecture Overview → `05-architecture/system-architecture-overview.md`
+* ADR for pattern decisions → `05-architecture/decisions/`
+* Domain map → `02-domain/domain-map.md`
+* Functional requirements → `04-requirements/functional.md`
+* Non-functional requirements → `04-requirements/non-functional.md`
+* API contracts → `07-api/contracts/openapi/`
+* UML diagrams → `08-uml/`
+* Microservices documentation → `09-microservices/`
+* Testing strategy → `11-quality/testing-strategy.md`
+* Technical backlog → `15-project-control/technical-backlog.md`
+
+---
+
+# Source of Truth
+
+The **Huila Travel Expedition SRS** is the primary source for business, functional, non-functional and technical requirements.
+
+The architectural patterns in this document must not be considered mandatory merely because they appear in the pattern catalog.
+
+A pattern becomes an adopted architectural decision only when:
+
+1. There is a real problem that justifies it.
+2. The technical team validates the solution.
+3. The decision is documented in an ADR when appropriate.
+4. The implementation is consistent with the project's architecture.
+
+The initial architecture is **Modular Monolith + Hexagonal Architecture**. Microservices patterns remain possible future options if the project evolves and their complexity is justified.
