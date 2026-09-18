@@ -1,82 +1,112 @@
 # ADR-001 — Documentation Language
 
-| Field | Value |
-|-------|-------|
-| **ID** | ADR-001 |
-| **Date** | 2024-01-10 |
-| **Status** | Accepted |
-| **Authors** | María García — Tech Lead |
-| **Reviewers** | Carlos Méndez, Sofía Torres, Andrés Ruiz — Development team |
+| Field         | Value                        |
+| ------------- | ---------------------------- |
+| **ID**        | ADR-001                      |
+| **Date**      | 2026-09-17                   |
+| **Status**    | Proposed                     |
+| **Authors**   | Huila Travel Expedition Team |
+| **Reviewers** | Development team             |
 
 ---
 
 ## Context
 
-The software industry standard — Stack Overflow, library documentation, technical articles,
-frameworks, and open-source tooling — operates in English. Mixing languages across artifacts
-(Spanish docs, English code, Spanish API descriptions) creates a cognitive translation
-boundary that slows onboarding, increases errors in naming, and makes it harder to search
-for help online.
+Huila Travel Expedition is documented using Markdown files, technical documentation, requirements, architecture documents, Git conventions, API contracts and Architecture Decision Records (ADRs).
 
-A single, clear rule established from day one prevents inconsistencies: mismatched variable
-names, Spanish comments in English code, and conflicting terminology between documentation
-and implementation.
+The project needs a consistent language for technical documentation and source code to avoid mixing terminology between different artifacts.
+
+The team also works with technologies such as Laravel, PHP, MySQL, Redis, Git and other tools whose official documentation and technical terminology are mainly available in English.
+
+A clear language convention helps maintain consistency between documentation, code, database names, Git branches, commits and technical concepts.
 
 ---
 
 ## Evaluated alternatives
 
-### Alternative A — Everything in English (CHOSEN)
-- **Pros:** Industry standard; easy to hire external developers; libraries and frameworks are in English; technical reference documentation is in English; eliminates the translation boundary between docs and code; GitHub, Stack Overflow, and AI tools all work best with English content
-- **Cons:** May require slightly more effort from team members who are not native English speakers
+### Alternative A — Everything in English (PROPOSED)
+
+* **Pros:** Consistent with the terminology used by Laravel, PHP, Git and other technical tools.
+* **Pros:** Makes technical documentation easier to compare with official documentation and external resources.
+* **Pros:** Keeps code, database names and technical documentation consistent.
+* **Pros:** Makes future collaboration with developers familiar with English technical terminology easier.
+* **Cons:** May require additional effort from team members who are more comfortable with Spanish.
 
 ### Alternative B — Everything in Spanish
-- **Pros:** Natural communication with Spanish-speaking clients; business domain names preserved exactly
-- **Cons:** Uncomfortable mix with language keywords (if, for, return, etc.); inconsistent with the library ecosystem; external contributors cannot participate
 
-### Alternative C — Split by layer (discarded)
-- **Pros:** Each artifact uses the most natural language for its audience
-- **Cons:** Requires strict discipline and explicit rules; harder to explain to new team members; creates a permanent translation boundary between docs (Spanish) and code (English); domain terms accumulate two canonical names
+* **Pros:** Easier for the current Spanish-speaking team to understand.
+* **Pros:** Business concepts can be documented naturally for the local project context.
+* **Cons:** Technical terminology may differ from the terminology used by frameworks and libraries.
+* **Cons:** Code and technical documentation could become less consistent with external technical resources.
+
+### Alternative C — Split by artifact or layer
+
+* **Pros:** Spanish could be used for business documentation and English for technical documentation or code.
+* **Cons:** The same concept could have two different names.
+* **Cons:** It can create inconsistencies between requirements, documentation and implementation.
+* **Cons:** New team members would need to learn which language applies to each artifact.
 
 ---
 
 ## Decision
 
-**Alternative A:** Use English for all documentation and code.
+**Alternative A — Use English as the standard language for technical documentation and code.**
 
-| Artifact | Language | Reason |
-|----------|----------|--------|
-| Variables, functions, classes in code | English | Consistency with libraries and frameworks |
-| Table and column names in DB | English | Coherence with the code that maps them |
-| Commits (Conventional Commits) | English | Established standard, readable on GitHub |
-| Git branch names | English | Consistent with commits |
-| Markdown documentation | English | Eliminates the translation boundary; searchable |
-| OpenAPI contracts (descriptions) | English | Readable by any future contributor |
-| End-user error messages | English (or localized) | Localization layer handles language at runtime |
-| Internal system logs | English | Facilitates search in library documentation and alerts |
-| ADRs and technical documentation | English | Single source of truth, no translation boundary |
+This decision is proposed for the Huila Travel Expedition project and must be reviewed and accepted by the team before becoming a formally adopted convention.
+
+| Artifact                         | Language               | Reason                                         |
+| -------------------------------- | ---------------------- | ---------------------------------------------- |
+| Variables, functions and classes | English                | Consistency with programming terminology       |
+| Database tables and columns      | English                | Consistency with application code              |
+| Git commits                      | English                | Consistency with repository conventions        |
+| Git branch names                 | English                | Consistent technical terminology               |
+| Markdown technical documentation | English                | Consistent project documentation               |
+| OpenAPI contracts                | English                | Standardized technical terminology             |
+| ADRs                             | English                | Consistency with architecture documentation    |
+| Technical logs                   | English                | Easier identification of technical events      |
+| Business terminology             | English canonical term | Maintains consistency with the technical model |
+| User-facing messages             | Spanish or localized   | Can be adapted to the final platform users     |
 
 ---
 
 ## Consequences
 
-**Positive:**
-- A single language across all artifacts eliminates the cognitive translation boundary
-- New team members have one clear rule from day 1
-- External contributors and AI tools work without friction
-- Domain terms have one canonical form (the English one in the code)
+### Positive
 
-**Negative:**
-- Team members who are less confident in English need to invest more initially
-- Some business terms may require careful translation decisions
+* A consistent language is established for technical artifacts.
+* Code and documentation can use the same canonical technical terminology.
+* The team can consult external technical documentation without translating every concept.
+* GitHub documentation remains consistent.
+* Future contributors can identify the language convention from the beginning.
 
-**Mitigation:**
-- Maintain a domain glossary with the canonical English translation for each business term: `01-context/glossary.md`
-- When a term has a debatable translation, document it in the glossary before using it in code
+### Negative
+
+* Team members with limited English proficiency may require additional effort.
+* Some Spanish business concepts may require careful translation.
+* The team must agree on the canonical English terminology for domain concepts.
+
+### Mitigation
+
+The team will maintain a glossary with the canonical terminology used by the project:
+
+`01-context/glossary.md`
+
+When a business term has more than one possible English translation, the team should define the selected term in the glossary before using it in the technical documentation or code.
 
 ---
 
 ## References
 
-- Team documentation conventions → `00-governance/documentation-rules.md`
-- Domain term glossary → `01-context/glossary.md`
+* Team documentation conventions → `00-governance/documentation-rules.md`
+* Git conventions → `00-governance/git-conventions.md`
+* Domain term glossary → `01-context/glossary.md`
+* Architecture overview → `05-architecture/overview.md`
+* Pattern guide → `05-architecture/pattern-guide.md`
+
+---
+
+## Status
+
+**Proposed**
+
+This ADR is proposed for team review. It should be changed to **Accepted** only after the Huila Travel Expedition team formally validates the documentation-language convention.
