@@ -1,231 +1,197 @@
-# Data Models per Service
+## MODELS - HUILA TRAVEL EXPEDITIONS
 
-> **What to fill in here:** The data schema for each microservice.
-> Each service has its own section. Remember: **each service has its own database**.
-> Schema changes are always done with versioned migrations, never by modifying tables in place.
+1. Database Architecture: Within the project's current scope and in compliance with SRS guidelines, the platform organizes its entities using a unified relational schema on a single centralized engine, isolating the transactional logic of each module through clear functional prefixes in the table names.
+2. 2. Standard audit fields: All system tables mandatorily include the following fields for technical traceability control:
+   3. id          VARCHAR(36) PRIMARY KEY, -- Formato UUID string para portabilidad
+created_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+updated_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+deleted_at  TIMESTAMP   NULL     DEFAULT NULL
+3. Soft delete by default: Physical data deletion is not performed on business entities (such as agencies or packages) to preserve system history and reliability (RNF11). Soft deletion is implemented using the deleted_at column.
+4. Naming conventions:
+5. Tables: Lowercase, plural, and snake_case style (e.g., paquetes_turisticos).
+6. Columns: Lowercase and descriptive (e.g., nombre_agencia).7.  Foreign Keys (FK): Format [singular_table_name]_id (e.g., agencia_id).
+8. Indexes: Named using the prefix idx_[table_name]_[columns].
 
-> **DB engine note:** This document is technology-agnostic. The examples show standard SQL
-> compatible with most relational engines. For document databases
-> (MongoDB) or key-value stores (Redis), adapt the diagrams and schemas to the corresponding format.
-> The engine choice is documented in each service section — the scaffold does not assume which one to use.
+9. Service Domain: Huila Travel Expedition | MonolithDB Engine: MySQL 8.0 | Engine Justification: Full Transactional Support: Required to handle concurrent traffic of 30 to 50 simultaneous users during peak season (RNF3) and ensure the calendar safely deducts available slots to prevent overbooking (RF9). Optimized Relational Queries: Highly efficient handling of JOINs between tour packages and their associated service logistics tables (hotels, guides, transport, and destinations) to deliver load times of under 3 seconds (RNF1).
 
----
+    Table: administrators | Purpose: Stores accounts for the internal management team with permissions to moderate content, approve agencies, and view global statistics (RF15, RF16).
 
-## Data modeling principles
-
-### 1. Database per Service (mandatory)
-No service directly accesses another service's database.
-Communication between services is always via API or events.
-
-```
-✓ Service A → DB A (PostgreSQL)
-✓ Service B → DB B (MongoDB)
-✗ Service A → JOIN with Service B's tables
-```
-
-### 2. Standard audit fields
-All tables include:
-
-```sql
-id          UUID        PRIMARY KEY  DEFAULT gen_random_uuid(),
-created_at  TIMESTAMPTZ NOT NULL     DEFAULT NOW(),
-updated_at  TIMESTAMPTZ NOT NULL     DEFAULT NOW(),
-deleted_at  TIMESTAMPTZ              -- NULL = active (soft delete)
-```
-
-### 3. Soft delete by default
-Do not delete records with a physical DELETE. Use `deleted_at IS NOT NULL` to mark as deleted.
-This facilitates auditing and recovery.
-
-### 4. Naming conventions
-
-```sql
--- Tables:      snake_case, plural              → orders, order_items, users
--- Columns:     snake_case, descriptive         → unit_price, delivery_date
--- FKs:         [referenced_table]_id           → customer_id, product_id
--- Indexes:     idx_[table]_[column(s)]         → idx_orders_customer_id
--- Timestamps:  always with timezone (TIMESTAMPTZ, not TIMESTAMP)
-```
-
----
-
-## Service: [service-name]
-
-**DB Engine:** PostgreSQL 15 / MongoDB 7 / Redis 7 — [justification for the choice]
-
-**Engine justification:**
-- [Why this engine for this service. E.g.: "PostgreSQL for ACID support in financial transactions"]
-- [Which engine features are used: JSONB, full-text search, geo, etc.]
-
-### Table: [table_name]
-
-**Purpose:** [What this table records]
-
-```sql
-CREATE TABLE [table_name] (
-  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  
-  -- Business fields
-  [field1]        [TYPE]      NOT NULL,
-  [field2]        [TYPE],
-  [field3]        [TYPE]      NOT NULL DEFAULT [value],
-  
-  -- Relationships
-  [reference]_id  UUID        REFERENCES [referenced_table](id) ON DELETE RESTRICT,
-  
-  -- Status fields
+   CREATE TABLE administradores (
+  id              VARCHAR(36) PRIMARY KEY,
+  cedula          INT         NOT NULL UNIQUE,
+  nombre          VARCHAR(100) NOT NULL,
+  telefono        INT         NOT NULL,
+  email           VARCHAR(100) NOT NULL UNIQUE,
+  password        VARCHAR(255) NOT NULL,
   status          VARCHAR(50) NOT NULL DEFAULT 'ACTIVE'
-                  CHECK (status IN ('ACTIVE', 'INACTIVE', 'CANCELLED')),
-  
-  -- Audit (in all tables)
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at      TIMESTAMPTZ,
-  created_by      UUID,
-  updated_by      UUID
-);
-
--- Indexes
-CREATE INDEX idx_[table]_[field] ON [table_name] ([field]);
-CREATE INDEX idx_[table]_deleted ON [table_name] (deleted_at) WHERE deleted_at IS NULL;
--- For frequent searches:
-CREATE INDEX idx_[table]_[search_field] ON [table_name] ([search_field]);
-```
-
-**Data dictionary:**
-
-| Column | Type | Description | Example |
-|--------|------|-------------|---------|
-| id | UUID | Auto-generated unique identifier | `550e8400-...` |
-| [field1] | [TYPE] | [Business description] | [Example] |
-| status | VARCHAR(50) | Lifecycle status | `ACTIVE` |
-| created_at | TIMESTAMPTZ | When the record was created | `2024-01-15T10:30:00Z` |
-| deleted_at | TIMESTAMPTZ | NULL = active; with value = deleted | `NULL` |
-
-**Modeling decisions:**
-1. [Why field X is NOT NULL and not nullable]
-2. [Why soft delete is used instead of hard delete]
-3. [Why the status field has that set of values]
-
----
-
-### Table: [related_table]
-
-```sql
-CREATE TABLE [related_table] (
-  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  [principal]_id  UUID        NOT NULL REFERENCES [principal_table](id) ON DELETE CASCADE,
-  
-  -- Fields
-  [field]         [TYPE]      NOT NULL,
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
   
   -- Audit
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at      TIMESTAMPTZ
+  created_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at      TIMESTAMP   NULL     DEFAULT NULL
 );
 
-CREATE INDEX idx_[related_table]_[principal]_id ON [related_table] ([principal]_id);
-```
+Table: agenciasPurpose: Almacena los perfiles de las agencias de viajes locales de la región, controlando su estado de aprobación legal mediante la verificación del NIT y RNT (RF1).
 
----
+CREATE TABLE agencias (
+  id              VARCHAR(36) PRIMARY KEY,
+  nit_agencia     VARCHAR(50) NOT NULL UNIQUE,
+  rnt_agencia     VARCHAR(50) NOT NULL UNIQUE,
+  nombre_agencia  VARCHAR(150) NOT NULL,
+  direccion       VARCHAR(150) NOT NULL,
+  telefono        VARCHAR(50)  NOT NULL,
+  email           VARCHAR(100) NOT NULL UNIQUE,
+  password        VARCHAR(255) NOT NULL,
+  status          VARCHAR(50) NOT NULL DEFAULT 'PENDIENTE'
+                  CHECK (status IN ('PENDIENTE', 'APROBADA', 'RECHAZADA')),
+  administrador_id VARCHAR(36) NULL REFERENCES administradores(id) ON DELETE RESTRICT,
+  
+  -- Audit
+  created_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at      TIMESTAMP   NULL     DEFAULT NULL
+);
 
-## Migration strategy
+CREATE INDEX idx_agencias_rnt ON agencias (rnt_agencia);
+CREATE INDEX idx_agencias_deleted ON agencias (deleted_at) WHERE deleted_at IS NULL;
 
-**Tool:** [Flyway / Liquibase / Prisma Migrate / TypeORM Migrations]
+Table: paquetes_turisticos | Purpose: Contains the catalog of tourism experience offers published and self-managed by agencies in the department (RF4).
 
-**File naming convention:**
+CREATE TABLE paquetes_turisticos (
+  id              VARCHAR(36) PRIMARY KEY,
+  nombre          VARCHAR(150) NOT NULL,
+  precio          INT         NOT NULL,
+  duracion_dias   INT         NOT NULL,
+  categoria       VARCHAR(100) NOT NULL, -- Categorías de turismo (RF6)
+  status          VARCHAR(50) NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  agencia_id      VARCHAR(36) NOT NULL REFERENCES agencias(id) ON DELETE CASCADE,
+  
+  -- Audit
+  created_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at      TIMESTAMP   NULL     DEFAULT NULL
+);
 
-```
-V{version_number}__{snake_case_description}.sql
+CREATE INDEX idx_paquetes_agencia ON paquetes_turisticos (agencia_id);
+CREATE INDEX idx_paquetes_precio_duracion ON paquetes_turisticos (precio, duracion_dias);
+CREATE INDEX idx_paquetes_deleted ON paquetes_turisticos (deleted_at) WHERE deleted_at IS NULL;
 
-Examples:
-  V001__create_orders_table.sql
-  V002__add_status_to_orders.sql
-  V003__create_index_orders_customer_id.sql
-```
+Table: destinos | Purpose: Stores the specific municipalities in Huila associated with each package to enable real-time public search filters (RF7).
 
-**Migration rules:**
+CREATE TABLE destinos (
+  id                  VARCHAR(36) PRIMARY KEY,
+  nombre_destino      VARCHAR(100) NOT NULL, -- Ej: Villavieja, San Agustín, Yaguará
+  paquete_turistico_id VARCHAR(36) NOT NULL REFERENCES paquetes_turisticos(id) ON DELETE CASCADE,
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-```
-✓ Migrations are ALWAYS forward-only
-✓ One migration per logical change
-✓ Seed data goes in separate migrations with prefix S: S001__seed_...
-✗ Never modify a migration already executed in any environment
-✗ Never do DROP COLUMN / DROP TABLE in a migration if there is code in production that uses it
-    (process: 1-deprecate in code → 2-cleanup migration in the next release)
-```
+CREATE INDEX idx_destinos_paquete ON destinos (paquete_turistico_id);
+CREATE INDEX idx_destinos_nombre ON destinos (nombre_destino);
 
-**Compatible schema changes (non-breaking):**
+Table: hotels | Purpose: Details logistical accommodation information linked as a benefit or service included in a specific tourism plan.
 
-```sql
--- Add nullable column → always safe
-ALTER TABLE orders ADD COLUMN notes TEXT;
+CREATE TABLE hoteles (
+  id                  VARCHAR(36) PRIMARY KEY,
+  nombre_hotel        VARCHAR(150) NOT NULL,
+  direccion           VARCHAR(150),
+  municipio           VARCHAR(100) NOT NULL,
+  telefono            VARCHAR(50),
+  paquete_turistico_id VARCHAR(36) NOT NULL REFERENCES paquetes_turisticos(id) ON DELETE CASCADE,
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
--- Add NOT NULL column with DEFAULT → safe if DEFAULT is valid
-ALTER TABLE orders ADD COLUMN priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL';
+CREATE INDEX idx_hoteles_paquete ON hoteles (paquete_turistico_id);
 
--- Create new index → safe (in production use CONCURRENTLY)
-CREATE INDEX CONCURRENTLY idx_orders_date ON orders (created_at);
-```
+Table: transportes | Purpose: Records operational data for the transport arranged to move travelers during expedition routes.
 
-**Incompatible changes (require 2-phase migration):**
+CREATE TABLE transportes (
+  id                  VARCHAR(36) PRIMARY KEY,
+  tipo_transporte     VARCHAR(100) NOT NULL, -- Ej: Campero 4x4, Lancha, Buseta
+  capacidad           INT         NOT NULL,
+  empresa             VARCHAR(100),
+  paquete_turistico_id VARCHAR(36) NOT NULL REFERENCES paquetes_turisticos(id) ON DELETE CASCADE,
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-```sql
--- Rename column → 2 phases:
--- Phase 1 (release N): Add new column, copy data, update code to use both
-ALTER TABLE orders ADD COLUMN delivery_date TIMESTAMPTZ;
-UPDATE orders SET delivery_date = fecha_entrega;
+CREATE INDEX idx_transportes_paquete ON transportes (paquete_turistico_id);
 
--- Phase 2 (release N+1): Remove old column (code no longer uses it)
-ALTER TABLE orders DROP COLUMN fecha_entrega;
-```
+Table: Guides. Purpose: Records the tour guides assigned to lead the activities for each travel package.
 
----
+CREATE TABLE guias (
+  id                  VARCHAR(36) PRIMARY KEY,
+  nombre              VARCHAR(150) NOT NULL,
+  cedula              INT         NOT NULL UNIQUE,
+  numero_telefono     VARCHAR(50)  NOT NULL,
+  paquete_turistico_id VARCHAR(36) NOT NULL REFERENCES paquetes_turisticos(id) ON DELETE CASCADE,
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-## DB engine selection guide
+CREATE INDEX idx_guias_paquete ON guias (paquete_turistico_id);
 
-| Engine | Use when... | Avoid when... |
-|--------|------------|---------------|
-| **PostgreSQL** | ACID transactions, complex relationships, JSONB, full-text | Deeply nested documents, graphs |
-| **MongoDB** | Flexible documents, product catalogs, catalogs | Complex transactions across collections |
-| **Redis** | Cache, sessions, lightweight queues, counters | Source of truth, critical data |
-| **Elasticsearch** | Full-text search, analytics, logs | Source of truth (it's an index, not a DB) |
-| **InfluxDB / TimescaleDB** | Time series, metrics, IoT | Transactional business data |
+Table: turistas | Purpose: Stores contact information and basic profiles of domestic or international travelers who interact with the website and request travel plans (RF16).
 
----
+CREATE TABLE turistas (
+  id              VARCHAR(36) PRIMARY KEY,
+  nombre          VARCHAR(150) NOT NULL,
+  cedula          INT         NOT NULL UNIQUE,
+  cellular        VARCHAR(50)  NOT NULL,
+  correo          VARCHAR(100) NOT NULL UNIQUE,
+  
+  -- Audit
+  created_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-## Relationship diagram (per service)
+Table: reservations | Purpose: Critical transactional entity that captures slot requests made by tourists, subject to status validation by agencies (RF10, RF11).
 
-```
-Replace with an ER diagram of the service using your preferred tool's notation.
+CREATE TABLE reservas (
+  id                  VARCHAR(36) PRIMARY KEY,
+  fecha_reserva       DATE        NOT NULL,
+  cantidad_personas   INT         NOT NULL,
+  status              VARCHAR(50) NOT NULL DEFAULT 'PENDIENTE'
+                      CHECK (status IN ('PENDIENTE', 'APROBADA', 'CANCELADA')),
+  paquete_turistico_id VARCHAR(36) NOT NULL REFERENCES paquetes_turisticos(id) ON DELETE RESTRICT,
+  turista_id          VARCHAR(36) NOT NULL REFERENCES turistas(id) ON DELETE CASCADE,
+  terminos_aceptados  BOOLEAN     NOT NULL DEFAULT TRUE, -- Soporte legal obligatorio (RF20)
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at          TIMESTAMP   NULL     DEFAULT NULL
+);
 
-Mermaid example:
-\```mermaid
-erDiagram
-    ORDERS ||--o{ ORDER_ITEMS : contains
-    ORDERS {
-        uuid id PK
-        uuid customer_id FK
-        varchar status
-        decimal total
-        timestamptz created_at
-    }
-    ORDER_ITEMS {
-        uuid id PK
-        uuid order_id FK
-        uuid product_id FK
-        integer quantity
-        decimal unit_price
-    }
-\```
-```
+CREATE INDEX idx_reservas_fecha_status ON reservas (fecha_reserva, status);
+CREATE INDEX idx_reservas_turista ON reservas (turista_id);
+CREATE INDEX idx_reservas_deleted ON reservas (deleted_at) WHERE deleted_at IS NULL;
 
----
+Table: payments | Purpose: Securely stores an audit trail of the amounts or commercial vouchers assigned to confirmed reservations.
 
-## Correlations
+CREATE TABLE pagos (
+  id                  VARCHAR(36) PRIMARY KEY,
+  fecha_pago          DATE        NOT NULL,
+  monto               INT         NOT NULL,
+  metodo_pago         VARCHAR(50) NOT NULL, -- Tarjeta, PSE, En efectivo
+  reserva_id          VARCHAR(36) NOT NULL REFERENCES reservas(id) ON DELETE RESTRICT,
+  
+  -- Audit
+  created_at          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-- Domain entities that map to these tables → `02-domain/entities-and-rules.md`
-- Saga and Outbox pattern for distributed consistency → `05-architecture/pattern-guide.md`
-- Data for each service in detail → `09-microservices/services/XX/data-model.md`
-- How data is accessed via API → `07-api/contracts/openapi/`
+CREATE INDEX idx_pagos_reserva ON pagos (reserva_id);
+
+
+CREATE INDEX idx_administradores_deleted ON administradores (deleted_at) WHERE deleted_at IS NULL;
