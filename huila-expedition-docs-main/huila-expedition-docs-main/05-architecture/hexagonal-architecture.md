@@ -1,147 +1,150 @@
 # Hexagonal Architecture (Ports & Adapters)
 
-> Hexagonal architecture, proposed by Alistair Cockburn, organizes a service so that the
-> **business domain is completely independent** of the surrounding technology.
-> The database, the web framework, the message broker — all are interchangeable details.
-> What matters is the business logic, which lives at the center.
+> Hexagonal architecture organizes a service so that the **business domain is independent from external technologies**.
+>
+> For Huila Travel Expedition, the business rules related to agencies, tourists, tourist plans, availability, reservations and reviews should not depend directly on the database, HTTP framework or other external technologies.
 
-> **Stack note:** The concepts in this document are valid for any language.
-> The code examples and folder structure specific to your technology are in:
-> - Node.js + TypeScript → [`_stacks/node-typescript.md`](../_stacks/node-typescript.md)
-> - Java + Spring Boot → [`_stacks/java-spring.md`](../_stacks/java-spring.md)
-> - Python + FastAPI → [`_stacks/python-fastapi.md`](../_stacks/python-fastapi.md)
-> - Go → [`_stacks/go.md`](../_stacks/go.md)
+> **Stack note:** The Huila Travel Expedition SRS proposes Laravel 10+, PHP 8.2+, MySQL 8.0, Redis and Bootstrap/Tailwind. The final implementation of the hexagonal architecture and its exact framework structure must be defined by the technical team.
 
 ---
 
 ## The problem it solves
 
-```
-❌ Traditional layered architecture:
+A traditional architecture can make business logic highly dependent on controllers, database queries or framework-specific code.
 
-  [HTTP Controller]
-       ↓
-  [Service]
-       ↓
-  [Repository]
-       ↓
-  [Database]
+For Huila Travel Expedition, this could make it difficult to change the database, modify the web layer or test reservation and availability rules independently.
 
-Problem: The "Service" mixes business logic with framework calls.
-If you change the framework, you break the business. If you want to test the business,
-you need to simulate the database.
+### Hexagonal Architecture
+
+```text
+                 PRIMARY ADAPTERS
+        ┌──────────────┬──────────────┐
+        │              │              │
+   HTTP/Web        Automated       Tests
+        │              │              │
+        └──────────────┴──────────────┘
+                       │
+                 [Driving Ports]
+                       │
+              ┌──────────────────┐
+              │                  │
+              │     DOMAIN       │
+              │                  │
+              │ Agencies         │
+              │ Tourists         │
+              │ Tourist Plans    │
+              │ Reservations     │
+              │ Availability     │
+              │ Reviews          │
+              │                  │
+              └──────────────────┘
+                       │
+                 [Driven Ports]
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+       Database Adapter     External Services
+             │                   │
+           MySQL             Email / other
 ```
 
-```
-✓ Hexagonal Architecture:
-
-  [HTTP Controller]  [CLI]  [Test]  ← Primary Adapters (enter the hexagon)
-          │            │      │
-          └────────────┴──────┘
-                       │
-                 [Driving Port]  ← Interface that defines the domain's API
-                       │
-               ┌───────────────┐
-               │               │
-               │    DOMAIN     │  ← Pure business logic, no external dependencies
-               │               │
-               └───────────────┘
-                       │
-                 [Driven Port]  ← Interface the domain needs from the outside world
-                       │
-          ┌────────────┴──────┐
-          │                   │
-  [DB Adapter]  [Kafka Adapter]  ← Secondary Adapters (exit the hexagon)
-```
+> The exact final service boundaries and external integrations are **not specified in the SRS** and must be defined during architecture design.
 
 ---
 
 ## Folder structure
 
-```
+The following structure is a proposed organization for a service using hexagonal architecture:
+
+```text
 src/
-├── domain/                          # The hexagon — no frameworks, no external dependencies
-│   ├── [aggregate]/
-│   │   ├── [Aggregate].ts           # Aggregate Root with invariants
-│   │   ├── [Aggregate]Id.ts         # Value Object for the ID
+├── domain/
+│   ├── agency/
+│   │   ├── Agency.php
+│   │   ├── AgencyId.php
 │   │   ├── events/
-│   │   │   └── [EventOccurred].ts   # Domain events
-│   │   ├── services/
-│   │   │   └── [DomainService].ts   # Logic that does not belong to any entity
-│   │   └── ports/                   # Interfaces (ports) — abstract contracts
+│   │   └── ports/
 │   │       ├── in/
-│   │       │   └── [UseCasePort].ts # Driving port: use case contract
 │   │       └── out/
-│   │           └── [RepoPort].ts    # Driven port: repository contract
+│   │
+│   ├── tourist/
+│   ├── tourist-plan/
+│   ├── reservation/
+│   ├── availability/
+│   ├── review/
 │   └── shared/
-│       └── value-objects/           # VOs shared between aggregates
-│           ├── Email.ts
-│           └── Money.ts
+│       └── value-objects/
 │
-├── application/                     # Use cases — orchestrate the domain
-│   └── [aggregate]/
-│       ├── [CreateXxxUseCase].ts    # Implements the driving port
-│       └── dtos/
-│           ├── [CreateXxxRequest].ts
-│           └── [CreateXxxResponse].ts
+├── application/
+│   ├── agency/
+│   ├── tourist/
+│   ├── tourist-plan/
+│   ├── reservation/
+│   ├── availability/
+│   └── review/
 │
-├── infrastructure/                  # Everything external to the hexagon
+├── infrastructure/
 │   ├── adapters/
-│   │   ├── in/                      # Primary adapters — receive external calls
-│   │   │   ├── http/
-│   │   │   │   ├── [XxxController].ts
-│   │   │   │   └── [XxxRouter].ts
-│   │   │   └── messaging/
-│   │   │       └── [XxxEventConsumer].ts
-│   │   └── out/                     # Secondary adapters — call the outside
+│   │   ├── in/
+│   │   │   └── http/
+│   │   └── out/
 │   │       ├── persistence/
-│   │       │   └── [XxxRepositoryImpl].ts   # Implements the driven port
-│   │       ├── messaging/
-│   │       │   └── [XxxEventPublisher].ts
 │   │       └── external/
-│   │           └── [ExternalApiAdapter].ts
 │   └── config/
-│       ├── database.ts
-│       └── container.ts             # Dependency injection (IoC)
 │
-└── main.ts                          # Bootstrap — connects adapters with ports
+└── main.php
 ```
+
+> This is a **proposed structure**, not a final implementation requirement. The SRS specifies the technology stack and functional requirements but does not define this exact folder structure.
 
 ---
 
 ## The Ports
 
-Ports are **interfaces** (abstract contracts). The domain defines them;
-adapters implement them.
+Ports are abstract contracts that allow the business logic to communicate with the outside world without depending on a concrete technology.
 
 ### Driving Port (Input Port)
 
-Defines what the domain can do — its public API from the outside's perspective.
+A driving port defines an operation that the application can execute.
 
-```typescript
-// src/domain/order/ports/in/CreateOrderPort.ts
-export interface CreateOrderPort {
-  execute(request: CreateOrderRequest): Promise<CreateOrderResponse>;
+For example, a reservation request could be represented conceptually as:
+
+```php
+interface RequestReservationPort
+{
+    public function execute(RequestReservationRequest $request);
 }
 ```
+
+For Huila Travel Expedition, possible input operations include:
+
+* Register agency
+* Authenticate user
+* Create tourist plan
+* Search tourist plans
+* Request reservation
+* Approve reservation
+* Cancel reservation
+* Submit review
+
+> Exact interface names and implementation are **proposed** because the SRS does not define them.
 
 ### Driven Port (Output Port)
 
-Defines what the domain needs from the outside world — without knowing how it is implemented.
+A driven port defines what the domain needs from an external system.
 
-```typescript
-// src/domain/order/ports/out/OrderRepositoryPort.ts
-export interface OrderRepositoryPort {
-  save(order: Order): Promise<void>;
-  findById(id: OrderId): Promise<Order | null>;
-  findByCustomer(customerId: CustomerId): Promise<Order[]>;
-}
+For example:
 
-// src/domain/order/ports/out/EventPublisherPort.ts
-export interface EventPublisherPort {
-  publish(event: DomainEvent): Promise<void>;
+```php
+interface ReservationRepositoryPort
+{
+    public function save(Reservation $reservation): void;
+
+    public function findById(string $id): ?Reservation;
 }
 ```
+
+The domain depends on this contract instead of directly depending on MySQL or another database.
 
 ---
 
@@ -149,207 +152,336 @@ export interface EventPublisherPort {
 
 ### Primary Adapter — HTTP Controller
 
-The HTTP controller translates the HTTP request to the domain use case.
+The HTTP controller receives requests from the web application and translates them into application use cases.
 
-```typescript
-// src/infrastructure/adapters/in/http/OrderController.ts
-import { CreateOrderPort } from '@domain/order/ports/in/CreateOrderPort';
+Conceptually:
 
-@Controller('/orders')
-export class OrderController {
-  constructor(
-    // Inject the port, NOT the concrete implementation
-    private readonly createOrder: CreateOrderPort,
-  ) {}
-
-  @Post('/')
-  async create(@Body() body: CreateOrderHttpRequest): Promise<void> {
-    // Translate HTTP request → domain DTO
-    const request = new CreateOrderRequest(body.customerId, body.items);
-    // Call the use case through the port
-    const response = await this.createOrder.execute(request);
-    return response;
-  }
-}
+```text
+HTTP Request
+     ↓
+Controller
+     ↓
+Driving Port
+     ↓
+Application Use Case
+     ↓
+Domain
 ```
+
+For example:
+
+```text
+POST /reservations
+        ↓
+ReservationController
+        ↓
+RequestReservationUseCase
+        ↓
+Reservation Domain
+```
+
+> The exact endpoint `/reservations` is illustrative. The SRS does not define final API routes.
+
+---
 
 ### Secondary Adapter — Repository
 
-The repository implements the driven port. The domain does not know PostgreSQL exists.
+The repository implements a driven port and communicates with the database.
 
-```typescript
-// src/infrastructure/adapters/out/persistence/OrderRepositoryImpl.ts
-import { OrderRepositoryPort } from '@domain/order/ports/out/OrderRepositoryPort';
-
-export class OrderRepositoryImpl implements OrderRepositoryPort {
-  constructor(private readonly db: DatabaseConnection) {}
-
-  async save(order: Order): Promise<void> {
-    // Translate Aggregate → database row
-    await this.db.query(
-      'INSERT INTO orders (id, customer_id, status, total) VALUES ($1, $2, $3, $4)',
-      [order.id.value, order.customerId.value, order.status, order.total.amount],
-    );
-  }
-
-  async findById(id: OrderId): Promise<Order | null> {
-    const row = await this.db.queryOne('SELECT * FROM orders WHERE id = $1', [id.value]);
-    if (!row) return null;
-    // Translate database row → Aggregate
-    return OrderMapper.toDomain(row);
-  }
-}
+```text
+Domain
+   ↓
+ReservationRepositoryPort
+   ↓
+ReservationRepository
+   ↓
+MySQL
 ```
+
+The domain does not need to know whether the data is stored in MySQL, PostgreSQL or another persistence technology.
+
+The SRS identifies **MySQL 8.0** as the proposed primary database and PostgreSQL as an alternative.
 
 ---
 
 ## The Use Case (Application Service)
 
-The use case orchestrates the domain. It uses driving and driven ports. It contains no business logic — that lives in the Aggregate.
+The application layer coordinates the execution of a use case.
 
-```typescript
-// src/application/order/CreateOrderUseCase.ts
-import { CreateOrderPort } from '@domain/order/ports/in/CreateOrderPort';
-import { OrderRepositoryPort } from '@domain/order/ports/out/OrderRepositoryPort';
-import { EventPublisherPort } from '@domain/order/ports/out/EventPublisherPort';
+For example, the reservation process can be represented as:
 
-export class CreateOrderUseCase implements CreateOrderPort {
-  constructor(
-    private readonly orderRepo: OrderRepositoryPort,
-    private readonly eventPublisher: EventPublisherPort,
-  ) {}
-
-  async execute(request: CreateOrderRequest): Promise<CreateOrderResponse> {
-    // 1. Create the aggregate (business logic lives HERE, in the domain)
-    const order = Order.create(request.customerId, request.items);
-
-    // 2. Persist (through the port — the use case does not know which DB is used)
-    await this.orderRepo.save(order);
-
-    // 3. Publish domain events (through the port)
-    for (const event of order.domainEvents) {
-      await this.eventPublisher.publish(event);
-    }
-
-    return new CreateOrderResponse(order.id.value);
-  }
-}
+```text
+Tourist
+   ↓
+Reservation Controller
+   ↓
+Request Reservation Use Case
+   ↓
+Check Availability
+   ↓
+Create Reservation
+   ↓
+Save Reservation
+   ↓
+Return Result
 ```
+
+The SRS specifies that reservation processing must maintain data integrity and prevent overbooking through **ACID transactions and locking**.
+
+Therefore, the reservation use case must coordinate these operations while the corresponding business rules remain in the domain.
+
+---
+
+## Domain responsibilities
+
+The domain should contain the business rules of Huila Travel Expedition without depending directly on Laravel, MySQL or HTTP.
+
+Examples of domain responsibilities include:
+
+### Agency
+
+* Agency registration rules.
+* Agency information.
+* Agency verification requirements.
+
+### Tourist Plans
+
+* Tourist plan creation and modification.
+* Destination information.
+* Tourism type classification.
+* Rates.
+* Availability information.
+
+### Reservations
+
+* Reservation request.
+* Reservation status.
+* Approval and cancellation.
+* Reservation integrity.
+* Prevention of overbooking.
+
+### Reviews
+
+* Rating and review information.
+* Rules related to submitting reviews.
+* Administrative moderation rules.
 
 ---
 
 ## The Dependency Rule
 
 > **Dependencies always point inward.**
-> The domain does not import anything from application or infrastructure.
-> Infrastructure imports from the domain (but never the other way around).
 
+```text
+Infrastructure
+      ↓
+Application
+      ↓
+Domain
+
+Domain
+  ↑
+must not depend on Infrastructure
+or Application
 ```
-infrastructure/ → application/ → domain/
-                                    ↑
-                         CANNOT import anything from application/ or infrastructure/
+
+The domain should not import:
+
+* Laravel infrastructure components.
+* Database-specific implementations.
+* HTTP controllers.
+* External APIs.
+
+Instead, the domain defines the required interfaces and the infrastructure implements them.
+
+---
+
+## Dependency inversion in practice
+
+Conceptually:
+
+```php
+// Domain
+interface ReservationRepositoryPort
+{
+    public function save(Reservation $reservation): void;
+}
 ```
 
-### Dependency inversion (DI) in practice
+The infrastructure implements the contract:
 
-```typescript
-// ✓ Correct — domain defines the interface, infrastructure implements it
-// In domain/:
-export interface OrderRepositoryPort { ... }
-
-// In infrastructure/:
-export class OrderRepositoryImpl implements OrderRepositoryPort { ... }
-
-// In the bootstrap (main.ts), the concrete implementation is injected:
-const orderRepo = new OrderRepositoryImpl(dbConnection);
-const createOrderUseCase = new CreateOrderUseCase(orderRepo, eventPublisher);
-const orderController = new OrderController(createOrderUseCase);
+```php
+// Infrastructure
+class ReservationRepository implements ReservationRepositoryPort
+{
+    public function save(Reservation $reservation): void
+    {
+        // Persistence implementation
+    }
+}
 ```
+
+The application use case receives the interface:
+
+```php
+class RequestReservationUseCase
+{
+    public function __construct(
+        private ReservationRepositoryPort $reservationRepository
+    ) {}
+}
+```
+
+This allows the business logic to remain independent from the concrete database implementation.
+
+---
+
+## Application to Huila Travel Expedition
+
+The architecture can organize the main business capabilities as follows:
+
+| Business capability | Possible domain area | Main responsibility                      |
+| ------------------- | -------------------- | ---------------------------------------- |
+| Agency registration | Agency               | Register and manage agencies             |
+| Authentication      | Authentication       | Authenticate users and control access    |
+| Tourist plans       | Tourist Plan         | Create and manage tourism offers         |
+| Search              | Tourist / Search     | Search and filter offers                 |
+| Availability        | Availability         | Manage dates and capacity                |
+| Reservations        | Reservation          | Request, approve and cancel reservations |
+| History             | Reservation          | Consult tourist reservation history      |
+| Reviews             | Review               | Ratings and reviews                      |
+| Administration      | Administration       | Statistics, reports and featured plans   |
+| Notifications       | Notification         | Reservation confirmation emails          |
+
+> These areas are logical groupings based on the SRS. They are not a final microservice decomposition.
+
+---
+
+## Reservation integrity
+
+Reservation processing is a critical business rule.
+
+The SRS specifies that the system must use **ACID transactions and locking mechanisms** to maintain reservation integrity and prevent overbooking.
+
+The conceptual flow is:
+
+```text
+Tourist requests reservation
+            ↓
+Check availability
+            ↓
+Begin transaction
+            ↓
+Lock relevant availability
+            ↓
+Validate capacity
+            ↓
+Create reservation
+            ↓
+Update availability
+            ↓
+Commit transaction
+```
+
+If the required capacity is not available, the reservation request must be rejected.
+
+---
+
+## Security considerations
+
+The architecture must support the security requirements defined in the SRS:
+
+* HTTPS with valid SSL.
+* Passwords must never be stored in plain text.
+* Laravel native password hashing is proposed.
+* Role-based access control.
+* Protection of personal information according to Law 1581 of 2012.
+* Audit logging for security-related operations.
+* Access controls according to the assigned role.
+
+Authentication and authorization details should remain behind appropriate application/infrastructure boundaries instead of placing framework-specific security logic inside the domain.
 
 ---
 
 ## Advantages for TDD
 
-Hexagonal architecture is ideal for TDD because:
+Hexagonal architecture supports testing because the domain can be tested independently from external technologies.
 
-1. **The domain is testable without framework mocks.** You do not need to start a server
-   or a database to test business logic.
+### Domain tests
 
-2. **Driven ports can be faked easily.** In tests, you use an
-   in-memory repository (Fake) instead of the real one.
+Business rules can be tested without starting the complete web application or connecting to the production database.
 
-3. **Invariants are explicit** and tested in isolation.
+Examples:
 
-```typescript
-// Domain unit test — zero external dependencies
-describe('Order', () => {
-  it('cannot be created without items', () => {
-    expect(() => Order.create(customerId, [])).toThrow('INV-001');
-  });
-
-  it('on confirm changes status to CONFIRMED', () => {
-    const order = Order.create(customerId, [validItem]);
-    order.confirm();
-    expect(order.status).toBe(OrderStatus.CONFIRMED);
-  });
-
-  it('on confirm emits OrderConfirmed event', () => {
-    const order = Order.create(customerId, [validItem]);
-    order.confirm();
-    expect(order.domainEvents).toContainEqual(expect.any(OrderConfirmedEvent));
-  });
-});
-
-// Use case test with FAKE repository (not a real DB mock)
-describe('CreateOrderUseCase', () => {
-  it('saves the order and publishes the event', async () => {
-    const fakeOrderRepo = new InMemoryOrderRepository();
-    const fakeEventPublisher = new InMemoryEventPublisher();
-    const useCase = new CreateOrderUseCase(fakeOrderRepo, fakeEventPublisher);
-
-    await useCase.execute(new CreateOrderRequest(customerId, [validItem]));
-
-    expect(fakeOrderRepo.orders).toHaveLength(1);
-    expect(fakeEventPublisher.events).toContainEqual(expect.any(OrderCreated));
-  });
-});
+```text
+Test: Reservation cannot exceed available capacity
+Test: Invalid reservation state cannot be approved
+Test: Invalid plan information is rejected
+Test: Unauthorized role cannot access administrative functionality
 ```
 
-> See full TDD guide in `11-quality/tdd-guide.md`
+### Application tests
+
+Use cases can be tested using fake repositories or other test adapters instead of real infrastructure.
+
+```text
+Use Case
+   ↓
+Fake Repository
+   ↓
+Test Result
+```
+
+This reduces dependence on the real database during unit testing.
 
 ---
 
 ## Hexagonal Architecture Checklist
 
-When reviewing a PR or new service, verify:
+When reviewing a service or pull request, verify:
 
-- [ ] `domain/` has no imports from `infrastructure/` or `application/`
-- [ ] `domain/` has no imports from frameworks (Express, NestJS, TypeORM, etc.)
-- [ ] Every repository interface lives in `domain/ports/out/`
-- [ ] Every use case interface lives in `domain/ports/in/`
-- [ ] Mappers (`toDomain` / `toPersistence`) live in `infrastructure/`, not in `domain/`
-- [ ] HTTP API DTOs live in `infrastructure/adapters/in/http/`, not in `domain/`
-- [ ] There is a unit test for each Aggregate invariant
+* [ ] `domain/` does not depend on infrastructure.
+* [ ] `domain/` does not depend directly on HTTP controllers.
+* [ ] Repository interfaces are defined as ports.
+* [ ] Use cases communicate through defined ports.
+* [ ] Database implementations remain in infrastructure.
+* [ ] HTTP adapters remain outside the domain.
+* [ ] Business rules are located in the domain.
+* [ ] Reservation integrity rules are tested.
+* [ ] Role-based access rules are tested.
+* [ ] Mappers and persistence logic remain outside the domain.
 
 ---
 
 ## Common mistakes (anti-patterns)
 
-| Anti-pattern | Why it is bad | Solution |
-|-------------|--------------|---------|
-| `import { Repository } from 'typeorm'` in the domain | Couples the domain to TypeORM | Define your own port interface |
-| Business logic in the Controller | If you change the endpoint, you change the business | Move to the Aggregate |
-| Repository returning DTOs instead of Aggregates | The domain cannot validate invariants | Use Mapper to reconstruct the Aggregate |
-| Use case with 15 dependencies | It probably does too much | Split into smaller use cases |
-| `any` in port interfaces | You lose the typed contract | Always use explicit typing |
+| Anti-pattern                               | Why it is bad                                        | Solution                                       |
+| ------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------- |
+| Business logic inside controllers          | Couples business rules to HTTP                       | Move business rules to the domain              |
+| Domain directly querying MySQL             | Couples the domain to the database                   | Define a repository port                       |
+| Domain importing Laravel components        | Couples business logic to the framework              | Keep framework dependencies outside the domain |
+| Repository returning only database records | Domain cannot apply its business rules correctly     | Reconstruct domain objects                     |
+| Excessive logic in one use case            | Makes the application difficult to maintain and test | Divide responsibilities into smaller use cases |
+| Hard-coded external services               | Makes integrations difficult to replace or test      | Use driven ports and adapters                  |
 
 ---
 
 ## References and correlations
 
-- Bounded Contexts → `02-domain/domain-map.md`
-- Entities and invariants → `02-domain/entities-and-rules.md`
-- Domain events → `02-domain/domain-events.md`
-- Complementary patterns (CQRS, Event Sourcing, Saga) → `05-architecture/pattern-guide.md`
-- TDD applied to hexagonal architecture → `11-quality/tdd-guide.md`
-- Service template with hexagonal structure → `09-microservices/_template/service/`
+* Requirements → `04-requirements/functional.md`
+* Non-functional requirements → `04-requirements/non-functional.md`
+* Domain map → `02-domain/domain-map.md`
+* Entities and invariants → `02-domain/entities-and-rules.md`
+* Domain events → `02-domain/domain-events.md`
+* API contracts → `07-api/contracts/openapi/`
+* Microservices → `09-microservices/services/`
+* Testing strategy → `11-quality/testing-strategy.md`
+* TDD guide → `11-quality/tdd-guide.md`
+
+---
+
+## Source of Truth
+
+The **Huila Travel Expedition SRS** is the primary source for the business requirements, security requirements, reservation integrity rules and proposed technology stack.
+
+The hexagonal structure, ports, adapters and folder organization described here are an architectural proposal based on those requirements. They should be validated by the technical team before being treated as final implementation decisions.
